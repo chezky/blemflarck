@@ -7,10 +7,7 @@ import (
 	"os"
 )
 
-//func IntToHex(n int64) []byte {
-//	return []byte(strconv.FormatInt(n, 16))
-//}
-
+// FormatB formats a block hash, and joins it with the letter 'b'. Used when inserting a new block in the db
 func FormatB(hash []byte) []byte {
 	last := bytes.Join(
 		[][]byte{[]byte("b"), hash},
@@ -19,10 +16,12 @@ func FormatB(hash []byte) []byte {
 	return last
 }
 
+// BlockFile takes in a block height and returns a string with that heights filename
 func BlockFile(h int) string {
-	return  fmt.Sprintf("./blocks_gen/%d.dat", h)
+	return fmt.Sprintf("./blocks_gen/%d.dat", h)
 }
 
+// ChainExists checks if there is already a chain
 func ChainExists() bool {
 	files, err := ioutil.ReadDir("./blocks_gen")
 	if err != nil {

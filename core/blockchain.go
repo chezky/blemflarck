@@ -10,16 +10,19 @@ import (
 // Store the blocks in their own separate .dat file. For example genesis would be 0.dat, block 1 would be 1.dat, etc...
 // store as an int // 4 bytes
 
+// Blockchain is a single instance of the blockchain.
 type Blockchain struct {
 	//Tip []byte
-	DB *bolt.DB
+	DB *bolt.DB // DB is a pointer to an open boltDB connection
 }
 
+// BCIterator is an instance of a blockchain iterator
 type BCIterator struct {
-	LastHash []byte
-	DB *bolt.DB
+	LastHash []byte   // LastHash is the hash of the block the iterator will iterate over next.
+	DB       *bolt.DB // DB is a pointer to an open boltDB connection
 }
 
+// CreateGenesisBlock creates the first (genesis) block of a chain.
 func (bc *Blockchain) CreateGenesisBlock() Block {
 	genesis := Block{
 		Timestamp: time.Now().Unix(),
@@ -27,50 +30,58 @@ func (bc *Blockchain) CreateGenesisBlock() Block {
 		Height:    0,
 	}
 
-	genesis.Hash, _  = genesis.GenerateHash()
+	genesis.Hash, _ = genesis.GenerateHash()
 
 	//bc.Tip = genesis.Hash
 
 	return genesis
 }
 
+// CreateBlockchain is responsible for either creating and returning, or just returning a blockchain instance. If there are no blocks, then
+// create a new genesis and blockchain. Otherwise just return a blockchain instance.
 func CreateBlockchain() (*Blockchain, error) {
 	var (
-		bc Blockchain
+		bc  Blockchain
 		err error
 	)
 
-	bc.DB, err = bolt.Open(dbFile, 0600, nil); if err != nil {
+	// open a db connection
+	bc.DB, err = bolt.Open(dbFile, 0600, nil)
+	if err != nil {
 		fmt.Printf("error opening boltDB for file %s: %v\n", dbFile, err)
 		return nil, err
 	}
 
+	// check if there already is a saved chain
 	if ChainExists() {
 		// just create a Blockchain instance without creating an entirely new chain
 		fmt.Printf("Blockchain already exists, using existing chain!\n")
 		return &bc, nil
 	}
 
+	// create a genesis block
 	genesis := bc.CreateGenesisBlock()
 
+	// save the genesis block
 	err = genesis.SaveToFile()
 	if err != nil {
 		fmt.Printf("error creating file for gensis block: %v\n", err)
 		return nil, err
 	}
 
+	// update the db with the genesis block
 	err = bc.DB.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(blocksBucket))
 		if err != nil {
 			fmt.Printf("error opening bucket %s: %v\n", blocksBucket, err)
 			return err
 		}
-		// b+64-byte block hash : file name of the block
+		// b+64-byte block hash : height of the block
 		if err := b.Put(FormatB(genesis.Hash), []byte(strconv.Itoa(genesis.Height))); err != nil {
 			fmt.Printf("error inserting genesis block in db: %v\n", err)
 			return err
 		}
-		// l : file name of the block
+		// l : height of the block
 		if err := b.Put([]byte("l"), []byte(strconv.Itoa(genesis.Height))); err != nil {
 			fmt.Printf("error updating l with genesis hash: %v\n", err)
 			return err
@@ -81,6 +92,7 @@ func CreateBlockchain() (*Blockchain, error) {
 	return &bc, err
 }
 
+// NewIterator creates a new blockchain iterator
 func (bc Blockchain) NewIterator() (*BCIterator, error) {
 	var iter BCIterator
 
@@ -89,12 +101,15 @@ func (bc Blockchain) NewIterator() (*BCIterator, error) {
 	err := iter.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 
+		// get the height of the latest block
 		lastIdxByte := b.Get([]byte("l"))
-		lastIdx, err :=  strconv.Atoi(string(lastIdxByte))
+		// convert the height in bytes to an int
+		lastIdx, err := strconv.Atoi(string(lastIdxByte))
 		if err != nil {
 			fmt.Printf("lastIdx was not an integer: %v\n", err)
 			return err
 		}
+		// read the block in from its file
 		block, err := ReadFromFile(lastIdx)
 		if err != nil {
 			return err
@@ -106,13 +121,14 @@ func (bc Blockchain) NewIterator() (*BCIterator, error) {
 	return &iter, err
 }
 
+// Next iterates over a blockchain and gets each block in the chain. It starts with the top and goes top -> down
 func (bci *BCIterator) Next() Block {
 	var block Block
 
 	if err := bci.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		idxByte := b.Get(FormatB(bci.LastHash))
-		idx, err :=  strconv.Atoi(string(idxByte))
+		idx, err := strconv.Atoi(string(idxByte))
 		if err != nil {
 			fmt.Printf("idxByte was not an integer: %v\n", err)
 			return err
