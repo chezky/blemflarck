@@ -34,24 +34,24 @@ const (
 
 //Block is an instance of a single block.
 type Block struct {
-	Timestamp int64  // Timestamp is the time when the block was created.
-	Hash      []byte // Hash is sha512 64-byte hash of the block. Its unique identifier.
-	PrevHash  []byte // PrevHash is the previous blocks hash.
-	Data      []byte // Data - Will be removed soon -
-	Height    int    // Height is the index of the block in the blockchain
-	Validator []byte // Validator is the winner of the Proof of Stake lottery
-	Winner    []byte // Winner is the winner of the random file lottery
+	Timestamp    int64  // Timestamp is the time when the block was created.
+	Hash         []byte // Hash is sha512 64-byte hash of the block. Its unique identifier.
+	PrevHash     []byte // PrevHash is the previous blocks hash.
+	Transactions []Transaction
+	Height       int    // Height is the index of the block in the blockchain
+	Validator    []byte // Validator is the winner of the Proof of Stake lottery
+	Winner       []byte // Winner is the winner of the random file lottery
 }
 
 // NewBlock takes the previous block, some data, and then creates a new block
-func NewBlock(PrevBlock Block, data []byte) (Block, error) {
+func NewBlock(PrevBlock Block, TXs []Transaction) (Block, error) {
 	var err error
 
 	block := Block{
-		Timestamp: time.Now().Unix(),
-		PrevHash:  PrevBlock.Hash,
-		Data:      data,
-		Height:    PrevBlock.Height + 1,
+		Timestamp:    time.Now().Unix(),
+		PrevHash:     PrevBlock.Hash,
+		Transactions: TXs,
+		Height:       PrevBlock.Height + 1,
 	}
 
 	block.Hash, err = block.GenerateHash()
@@ -61,7 +61,7 @@ func NewBlock(PrevBlock Block, data []byte) (Block, error) {
 
 // AddBlock adds a block to the blockchain. It first gets the previous block, and then creates a new block. It saves the new block to
 // a file, and updates the block bucket, storing the file number under the key 'l'.
-func (bc *Blockchain) AddBlock(data []byte) error {
+func (bc *Blockchain) AddBlock(TXs []Transaction) error {
 	var (
 		prevBlock Block
 		err       error
@@ -80,7 +80,7 @@ func (bc *Blockchain) AddBlock(data []byte) error {
 		return err
 	}
 
-	block, err := NewBlock(prevBlock, data)
+	block, err := NewBlock(prevBlock, TXs)
 	if err != nil {
 		fmt.Printf("error creating new block with prev bloch hash %s: %v\n", hex.EncodeToString(prevBlock.Hash), err)
 		return err

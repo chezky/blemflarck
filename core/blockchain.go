@@ -23,11 +23,16 @@ type BCIterator struct {
 }
 
 // CreateGenesisBlock creates the first (genesis) block of a chain.
-func (bc *Blockchain) CreateGenesisBlock() Block {
+func (bc *Blockchain) CreateGenesisBlock(address string) Block {
+	cbTX, err := NewCoinbaseTransaction([]byte(address))
+	if err != nil {
+		fmt.Printf("error creating cbTX in genesis: %v\n", err)
+	}
+
 	genesis := Block{
-		Timestamp: time.Now().Unix(),
-		Data:      []byte(genesisData),
-		Height:    0,
+		Timestamp:    time.Now().Unix(),
+		Transactions: []Transaction{cbTX},
+		Height:       0,
 	}
 
 	genesis.Hash, _ = genesis.GenerateHash()
@@ -39,7 +44,7 @@ func (bc *Blockchain) CreateGenesisBlock() Block {
 
 // CreateBlockchain is responsible for either creating and returning, or just returning a blockchain instance. If there are no blocks, then
 // create a new genesis and blockchain. Otherwise just return a blockchain instance.
-func CreateBlockchain() (*Blockchain, error) {
+func CreateBlockchain(address string) (*Blockchain, error) {
 	var (
 		bc  Blockchain
 		err error
@@ -60,7 +65,7 @@ func CreateBlockchain() (*Blockchain, error) {
 	}
 
 	// create a genesis block
-	genesis := bc.CreateGenesisBlock()
+	genesis := bc.CreateGenesisBlock(address)
 
 	// save the genesis block
 	err = genesis.SaveToFile()
