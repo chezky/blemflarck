@@ -60,7 +60,6 @@ func CreateBlockchain(address string) (*Blockchain, error) {
 	// check if there already is a saved chain
 	if ChainExists() {
 		// just create a Blockchain instance without creating an entirely new chain
-		fmt.Printf("Blockchain already exists, using existing chain!\n")
 		return &bc, nil
 	}
 
@@ -94,6 +93,8 @@ func CreateBlockchain(address string) (*Blockchain, error) {
 		return nil
 	})
 
+	fmt.Printf("Blockchain successfully created!\n")
+
 	return &bc, err
 }
 
@@ -115,7 +116,7 @@ func (bc Blockchain) NewIterator() (*BCIterator, error) {
 			return err
 		}
 		// read the block in from its file
-		block, err := ReadFromFile(lastIdx)
+		block, err := ReadBlocksFromFile(lastIdx)
 		if err != nil {
 			return err
 		}
@@ -138,7 +139,7 @@ func (bci *BCIterator) Next() Block {
 			fmt.Printf("idxByte was not an integer: %v\n", err)
 			return err
 		}
-		block, err = ReadFromFile(idx)
+		block, err = ReadBlocksFromFile(idx)
 		bci.LastHash = block.PrevHash
 		return err
 	}); err != nil {

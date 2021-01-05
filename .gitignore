@@ -2,3 +2,5 @@ blocks_gen
 *.exe
 *.db
 *.lock
+*.dat
+*.db.lock

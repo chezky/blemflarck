@@ -73,7 +73,7 @@ func (bc *Blockchain) AddBlock(TXs []Transaction) error {
 		if err != nil {
 			return err
 		}
-		prevBlock, err = ReadFromFile(lastIdx)
+		prevBlock, err = ReadBlocksFromFile(lastIdx)
 		return err
 	}); err != nil {
 		fmt.Printf("error getting prev block for AddBLock: %v\n", err)
@@ -159,8 +159,8 @@ func (b Block) SaveToFile() error {
 	return err
 }
 
-// ReadFromFile reads a block in from a file, with the file name being its height followed by .dat. For example, 400.dat
-func ReadFromFile(height int) (Block, error) {
+// ReadBlocksFromFile reads a block in from a file, with the file name being its height followed by .dat. For example, 400.dat
+func ReadBlocksFromFile(height int) (Block, error) {
 	var block Block
 
 	encBlock, err := ioutil.ReadFile(BlockFile(height))
