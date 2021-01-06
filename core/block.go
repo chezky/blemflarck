@@ -10,6 +10,7 @@ import (
 	"crypto/sha512"
 	"encoding/gob"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"io/ioutil"
@@ -66,6 +67,19 @@ func (bc *Blockchain) AddBlock(TXs []Transaction) error {
 		prevBlock Block
 		err       error
 	)
+
+	for _, tx := range TXs {
+		if !tx.IsCoinbase() {
+			verified, err := bc.VerifyTransaction(tx)
+			if err != nil {
+				return err
+			}
+			if !verified {
+				return errors.New("ERROR: TX is invalid")
+			}
+		}
+	}
+
 	if err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		lastIdxByte := b.Get([]byte("l"))

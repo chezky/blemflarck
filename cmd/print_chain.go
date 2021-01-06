@@ -43,11 +43,12 @@ func printChain() func(cmd *cobra.Command, args []string) {
 				fmt.Printf("Output count: %d\n", len(tx.Vout))
 				for outIdx, out := range tx.Vout {
 					fmt.Printf("Output #%d Value is: %d\n", outIdx, out.Value)
-					fmt.Printf("Output #%d PubKey is: %s\n", outIdx, out.PubKeyHash)
+					fmt.Printf("Output #%d PubKeyHash is: %s\n", outIdx, hex.EncodeToString(out.PubKeyHash))
 				}
 				fmt.Printf("Input count: %d\n", len(tx.Vin))
 				for inIdx, in := range tx.Vin {
-					fmt.Printf("Input #%d PubKey is %s\n", inIdx, in.PubKey)
+					fmt.Printf("Input #%d PubKey: %s\n", inIdx, hex.EncodeToString(in.PubKey))
+					fmt.Printf("Input #%d Signature: %s\n", inIdx, hex.EncodeToString(in.Signature))
 				}
 			}
 			fmt.Println()

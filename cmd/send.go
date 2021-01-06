@@ -30,7 +30,8 @@ func send() func(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		cbTX, err := core.NewCoinbaseTransaction([]byte(sendFrom))
+
+		cbTX, err := core.NewCoinbaseTransaction(sendFrom)
 		if err != nil {
 			log.Fatal(err)
 		}

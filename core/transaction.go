@@ -34,13 +34,10 @@ func (tx Transaction) IsCoinbase() bool {
 	return tx.Vin[0].OutputIndex == -1
 }
 
-func NewCoinbaseTransaction(address []byte) (Transaction, error) {
+func NewCoinbaseTransaction(address string) (Transaction, error) {
 	var err error
 
-	out := Output{
-		Value:      coinbaseReward,
-		PubKeyHash: address,
-	}
+	out := CreateOutput(address, coinbaseReward)
 
 	in := Input{
 		OutputIndex: -1,
@@ -175,6 +172,17 @@ func (bc Blockchain) NewTransaction(from, to string, amount int) (Transaction, e
 		tx Transaction
 	)
 
+	wallets, err := ReadWalletsFromFile()
+	if err != nil {
+		fmt.Printf("error reading wallets from file for new TX: %v\n", err)
+		return tx, err
+	}
+
+	wallet := wallets.Wallets[from]
+	if wallet.PublicKey == nil {
+		return tx, errors.New("ERROR: this address was not found")
+	}
+
 	acc, UTXOs, err := bc.FindSpendableOutputs([]byte(from), amount)
 	if err != nil {
 		return tx, err
@@ -189,31 +197,30 @@ func (bc Blockchain) NewTransaction(from, to string, amount int) (Transaction, e
 			inp := Input{
 				TransactionID: id,
 				OutputIndex:   outIdx,
-				PubKey:        []byte(from),
+				PubKey:        wallet.PublicKey,
 				Signature:     nil,
 			}
 			tx.Vin = append(tx.Vin, inp)
 		}
 	}
 
-	out := Output{
-		Value:      amount,
-		PubKeyHash: []byte(to),
-	}
+	out := CreateOutput(to, amount)
 
 	tx.Vout = append(tx.Vout, out)
 
 	if acc-amount > 0 {
-		remaining := Output{
-			Value:      acc - amount,
-			PubKeyHash: []byte(from),
-		}
-		tx.Vout = append(tx.Vout, remaining)
+		remainingOut := CreateOutput(from, acc-amount)
+		tx.Vout = append(tx.Vout, remainingOut)
 	}
 
 	tx.ID, err = tx.Hash()
 	if err != nil {
 		fmt.Printf("error hashing tx for newTransaction: %v", err)
+		return tx, err
+	}
+
+	if err := bc.SignTransaction(tx, wallet.PrivateKey); err != nil {
+		fmt.Printf("error signing tx: %v\n", err)
 		return tx, err
 	}
 
@@ -263,6 +270,10 @@ func (tx Transaction) TrimmedTransaction() Transaction {
 	return trimmedTX
 }
 
+// When one makes a transaction, in reality he should be providing his public+private keys, and the address of the recipient. In this current
+// implementation, since the wallets are stored locally, we have the sender input his address. We then lookup a senders private+public keys
+// in relation to that address.
+
 // Sign is responsible for the logic behind signing a tx. Signing validates that when a transaction is made, the owner of the output is the one
 // making the transaction. It does so by creating a trimmed transaction, setting the publicKey of each input to that of the output it is referencing,
 // and then hashing that trimmed transaction. Then the private key and trimmed id get signed together to form a two piece signature. Those are appended
@@ -305,7 +316,7 @@ func (tx Transaction) Verify(prevTXs map[string]Transaction) (bool, error) {
 	curve := elliptic.P256()
 
 	for inIdx, in := range tx.Vin {
-		prevTX := prevTXs[hex.EncodeToString(tx.ID)]
+		prevTX := prevTXs[hex.EncodeToString(in.TransactionID)]
 		trimmed.Vin[inIdx].PubKey = prevTX.Vout[in.OutputIndex].PubKeyHash
 		trimmed.Vin[inIdx].Signature = nil
 		trimmed.ID, err = trimmed.Hash()
@@ -333,4 +344,34 @@ func (tx Transaction) Verify(prevTXs map[string]Transaction) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (bc Blockchain) SignTransaction(tx Transaction, private ecdsa.PrivateKey) error {
+	prevTXs, err := bc.FindReferencedOutputs(tx)
+	if err != nil {
+		fmt.Printf("error finding refrenced outputs for Signing: %v\n", err)
+		return err
+	}
+
+	if err := tx.Sign(private, prevTXs); err != nil {
+		fmt.Printf("error signing tx: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (bc Blockchain) VerifyTransaction(tx Transaction) (bool, error) {
+	prevTXs, err := bc.FindReferencedOutputs(tx)
+	if err != nil {
+		fmt.Printf("error finding referenced outputs during verification: %v\n", err)
+		return false, err
+	}
+
+	verified, err := tx.Verify(prevTXs)
+	if err != nil {
+		fmt.Printf("error verifiying transaction: %v\n", err)
+		return false, err
+	}
+
+	return verified, err
 }

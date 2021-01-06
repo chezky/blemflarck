@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"strconv"
@@ -24,7 +25,7 @@ type BCIterator struct {
 
 // CreateGenesisBlock creates the first (genesis) block of a chain.
 func (bc *Blockchain) CreateGenesisBlock(address string) Block {
-	cbTX, err := NewCoinbaseTransaction([]byte(address))
+	cbTX, err := NewCoinbaseTransaction(address)
 	if err != nil {
 		fmt.Printf("error creating cbTX in genesis: %v\n", err)
 	}
@@ -146,4 +147,29 @@ func (bci *BCIterator) Next() Block {
 		fmt.Printf("error getting next block in iter for block hash %s: %v\n", bci.LastHash, err)
 	}
 	return block
+}
+
+func (bc Blockchain) FindReferencedOutputs(tx Transaction) (map[string]Transaction, error) {
+	referenced := make(map[string]Transaction)
+
+	UTXOs, err := bc.FindUTXOs()
+	if err != nil {
+		fmt.Printf("error finding UTXOs for FindReferencedOutputs: %v\n", err)
+		return referenced, err
+	}
+
+	// run through each output, and check if the ID from any of the txInputs match the outputs txID.
+	for txID, _ := range UTXOs {
+		for _, in := range tx.Vin {
+			if txID == hex.EncodeToString(in.TransactionID) {
+				referencedTX, err := bc.FindTransaction(in.TransactionID)
+				if err != nil {
+					fmt.Printf("error finding referencedTX: %v", err)
+					return referenced, err
+				}
+				referenced[txID] = referencedTX
+			}
+		}
+	}
+	return  referenced, nil
 }

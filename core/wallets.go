@@ -14,7 +14,7 @@ const (
 )
 
 type Wallets struct {
-	Wallets []Wallet
+	Wallets map[string]Wallet
 }
 
 func (ws Wallets) SaveToFile() error {
@@ -30,6 +30,9 @@ func (ws Wallets) SaveToFile() error {
 
 func ReadWalletsFromFile() (Wallets, error) {
 	var wallets Wallets
+
+	// without this line, if wallets.dat doesn't exist, errors will be thrown
+	wallets.Wallets = make(map[string]Wallet)
 
 	encWallets, err :=  ioutil.ReadFile(walletFile)
 	if err != nil {
