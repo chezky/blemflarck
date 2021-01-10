@@ -11,11 +11,14 @@ import (
 )
 
 func StartServer() error {
-	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", getIP(), 8080))
+	addr := fmt.Sprintf("%s:%d", getIP(), 8080)
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Printf("error starting server: %v\n", err)
 		return err
 	}
+
+	fmt.Printf("starting server on address: %s\n", addr)
 
 	defer ln.Close()
 
@@ -30,7 +33,7 @@ func StartServer() error {
 	}
 
 	defer bc.DB.Close()
-
+	
 	for {
 		conn, err := ln.Accept(); if err != nil {
 			fmt.Printf("error accepting connection")
@@ -60,13 +63,13 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 func SendCmd(address string) error {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		fmt.Printf("error dialing address: %s: %v", address, err)
+		fmt.Printf("error dialing address: %s: %v\n", address, err)
 		return err
 	}
 
 	defer conn.Close()
 
-	_, err = io.Copy(conn, bytes.NewReader([]byte(getIP())))
+	_, err = io.Copy(conn, bytes.NewReader([]byte(fmt.Sprintf("%s:%d", getIP(), 8080))))
 	return err
 }
 
