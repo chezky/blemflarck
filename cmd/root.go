@@ -40,6 +40,7 @@ func init() {
 	rootCmd.AddCommand(printChainCmd)
 	rootCmd.AddCommand(reindexCmd)
 	rootCmd.AddCommand(getBalanceCmd)
+	rootCmd.AddCommand(startServerCmd)
 }
 
 func Execute() {
