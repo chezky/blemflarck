@@ -68,9 +68,11 @@ func (bc *Blockchain) AddBlock(TXs []Transaction) error {
 		err       error
 	)
 
+	utxo := UTXO{Blockchain: bc}
+
 	for _, tx := range TXs {
 		if !tx.IsCoinbase() {
-			verified, err := bc.VerifyTransaction(tx)
+			verified, err := utxo.VerifyTransaction(tx)
 			if err != nil {
 				return err
 			}
@@ -87,7 +89,7 @@ func (bc *Blockchain) AddBlock(TXs []Transaction) error {
 		if err != nil {
 			return err
 		}
-		prevBlock, err = ReadBlocksFromFile(lastIdx)
+		prevBlock, err = ReadBlockFromFile(lastIdx)
 		return err
 	}); err != nil {
 		fmt.Printf("error getting prev block for AddBLock: %v\n", err)
@@ -174,7 +176,7 @@ func (b Block) SaveToFile() error {
 }
 
 // ReadBlocksFromFile reads a block in from a file, with the file name being its height followed by .dat. For example, 400.dat
-func ReadBlocksFromFile(height int) (Block, error) {
+func ReadBlockFromFile(height int) (Block, error) {
 	var block Block
 
 	encBlock, err := ioutil.ReadFile(BlockFile(height))

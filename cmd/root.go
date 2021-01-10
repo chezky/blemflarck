@@ -10,7 +10,7 @@ var (
 	rootCmd = cobra.Command{
 		Use: "blem",
 		Short: "Blemflarck is a cryptocurrency based on the X web",
-		Long: "Blemflarck is the cryptocurrency for the X web. Build with love and dedication",
+		Long: "Blemflarck is the cryptocurrency for the X web. Built with love and dedication",
 	}
 )
 
@@ -33,6 +33,7 @@ func init() {
 	rootCmd.AddCommand(createChainCmd)
 	rootCmd.AddCommand(sendCmd)
 	rootCmd.AddCommand(printChainCmd)
+	rootCmd.AddCommand(reindexCmd)
 }
 
 func Execute() {

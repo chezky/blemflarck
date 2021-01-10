@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"strconv"
@@ -117,7 +116,7 @@ func (bc Blockchain) NewIterator() (*BCIterator, error) {
 			return err
 		}
 		// read the block in from its file
-		block, err := ReadBlocksFromFile(lastIdx)
+		block, err := ReadBlockFromFile(lastIdx)
 		if err != nil {
 			return err
 		}
@@ -140,7 +139,7 @@ func (bci *BCIterator) Next() Block {
 			fmt.Printf("idxByte was not an integer: %v\n", err)
 			return err
 		}
-		block, err = ReadBlocksFromFile(idx)
+		block, err = ReadBlockFromFile(idx)
 		bci.LastHash = block.PrevHash
 		return err
 	}); err != nil {
@@ -149,27 +148,28 @@ func (bci *BCIterator) Next() Block {
 	return block
 }
 
-func (bc Blockchain) FindReferencedOutputs(tx Transaction) (map[string]Transaction, error) {
-	referenced := make(map[string]Transaction)
-
-	UTXOs, err := bc.FindUTXOs()
-	if err != nil {
-		fmt.Printf("error finding UTXOs for FindReferencedOutputs: %v\n", err)
-		return referenced, err
-	}
-
-	// run through each output, and check if the ID from any of the txInputs match the outputs txID.
-	for txID, _ := range UTXOs {
-		for _, in := range tx.Vin {
-			if txID == hex.EncodeToString(in.TransactionID) {
-				referencedTX, err := bc.FindTransaction(in.TransactionID)
-				if err != nil {
-					fmt.Printf("error finding referencedTX: %v", err)
-					return referenced, err
-				}
-				referenced[txID] = referencedTX
-			}
-		}
-	}
-	return  referenced, nil
-}
+//func (bc Blockchain) FindReferencedOutputs(tx Transaction) (map[string]Transaction, error) {
+//	referenced := make(map[string]Transaction)
+//
+//	UTXOs, err := bc.FindUTXOs()
+//	if err != nil {
+//		fmt.Printf("error finding UTXOs for FindReferencedOutputs: %v\n", err)
+//		return referenced, err
+//	}
+//
+//	// run through each output, and check if the ID from any of the txInputs match the outputs txID.
+//	for txID, _ := range UTXOs {
+//		for _, in := range tx.Vin {
+//			if txID == hex.EncodeToString(in.TransactionID) {
+//				referencedTX, err := bc.FindTransaction(in.TransactionID)
+//				if err != nil {
+//					fmt.Printf("error finding referencedTX: %v", err)
+//					return referenced, err
+//				}
+//				referenced[txID] = referencedTX
+//			}
+//		}
+//	}
+//
+//	return  referenced, nil
+//}

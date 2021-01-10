@@ -19,6 +19,18 @@ func FormatB(hash []byte) []byte {
 	return last
 }
 
+func FormatC(txID []byte) []byte {
+	last := bytes.Join(
+		[][]byte{[]byte("C"), txID},
+		[]byte{},
+	)
+	return last
+}
+
+func ReformatKey(key []byte) []byte {
+	return key[1:]
+}
+
 // BlockFile takes in a block height and returns a string with that heights filename
 func BlockFile(h int) string {
 	return fmt.Sprintf("./blocks_gen/%d.dat", h)

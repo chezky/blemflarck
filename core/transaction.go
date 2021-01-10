@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 )
 
 const (
@@ -27,6 +28,8 @@ type Transaction struct {
 	ID   []byte
 	Vout []Output
 	Vin  []Input
+	// implemented since two cb tx's were ending up with duplicate hashes
+	Timestamp int64
 }
 
 // TOOD: update this as transaction gets more complicated
@@ -48,6 +51,7 @@ func NewCoinbaseTransaction(address string) (Transaction, error) {
 		Vin:  []Input{in},
 	}
 
+	tx.Timestamp = time.Now().Unix()
 	tx.ID, err = tx.Hash()
 	if err != nil {
 		fmt.Printf("error creating coinbase tx hash: %v\n", err)
@@ -91,12 +95,12 @@ func DeserializeTransaction(data []byte) (Transaction, error) {
 }
 
 // eventually create this where chainstate db stores state of UTXO's
-func (bc Blockchain) FindUTXOs() (map[string][]Output, error) {
+func (bc Blockchain) FindUTXOs() (map[string]*UTXOutputs, error) {
 	var (
 		// needs to be a slice of int, since one transaction can have multiple used outputs
 		// this is a map of transactionID's mapped to the output idx that is referenced by an input
 		references = make(map[string][]int)
-		UTXOs      = make(map[string][]Output)
+		UTXOs      = make(map[string]*UTXOutputs)
 	)
 
 	iter, err := bc.NewIterator()
@@ -109,16 +113,25 @@ func (bc Blockchain) FindUTXOs() (map[string][]Output, error) {
 		blk := iter.Next()
 		// then begin looping over every transaction in the block
 		for _, tx := range blk.Transactions {
+			var outputs UTXOutputs
+
 			id := hex.EncodeToString(tx.ID)
 			// next, loop over every output, and check if that output is referenced by an input
 		Outputs:
 			for outIdx, out := range tx.Vout {
 				for _, usedIdx := range references[id] {
+					// error where coinbase tx are false positives
 					if usedIdx == outIdx {
 						continue Outputs
 					}
 				}
-				UTXOs[id] = append(UTXOs[id], out)
+				outputs.Outputs = append(outputs.Outputs, out)
+				outputs.Indexes = append(outputs.Indexes, outIdx)
+				outputs.BlockHeight = blk.Height
+			}
+
+			if len(outputs.Outputs) > 0 {
+				UTXOs[id] = &outputs
 			}
 
 			// for every input, store which output it references
@@ -138,36 +151,7 @@ func (bc Blockchain) FindUTXOs() (map[string][]Output, error) {
 	return UTXOs, nil
 }
 
-func (bc Blockchain) FindSpendableOutputs(address []byte, amount int) (int, map[string][]int, error) {
-	outputs := make(map[string][]int)
-	accumulated := 0
-
-	UTXOs, err := bc.FindUTXOs()
-	if err != nil {
-		fmt.Printf("error getting UTXOs for findBalance: %v\n", err)
-		return 0, outputs, err
-	}
-
-	for txID, outs := range UTXOs {
-		for outIdx, out := range outs {
-			if out.CanBeUnlocked(address) && accumulated < amount {
-				accumulated += out.Value
-				outputs[txID] = append(outputs[txID], outIdx)
-			}
-			if accumulated > amount {
-				break
-			}
-		}
-	}
-
-	if accumulated < amount {
-		return accumulated, outputs, errors.New("ERROR: not enough funds")
-	}
-
-	return accumulated, outputs, nil
-}
-
-func (bc Blockchain) NewTransaction(from, to string, amount int) (Transaction, error) {
+func (bc *Blockchain) NewTransaction(from, to string, amount int) (Transaction, error) {
 	var (
 		tx Transaction
 	)
@@ -183,7 +167,9 @@ func (bc Blockchain) NewTransaction(from, to string, amount int) (Transaction, e
 		return tx, errors.New("ERROR: this address was not found")
 	}
 
-	acc, UTXOs, err := bc.FindSpendableOutputs([]byte(from), amount)
+	utxo := UTXO{ Blockchain: bc}
+
+	acc, UTXOs, err := utxo.FindSpendableOutputs([]byte(from), amount)
 	if err != nil {
 		return tx, err
 	}
@@ -213,41 +199,19 @@ func (bc Blockchain) NewTransaction(from, to string, amount int) (Transaction, e
 		tx.Vout = append(tx.Vout, remainingOut)
 	}
 
+	tx.Timestamp = time.Now().Unix()
 	tx.ID, err = tx.Hash()
 	if err != nil {
 		fmt.Printf("error hashing tx for newTransaction: %v", err)
 		return tx, err
 	}
 
-	if err := bc.SignTransaction(tx, wallet.PrivateKey); err != nil {
+	if err := utxo.SignTransaction(tx, wallet.PrivateKey); err != nil {
 		fmt.Printf("error signing tx: %v\n", err)
 		return tx, err
 	}
 
 	return tx, nil
-}
-
-func (bc Blockchain) FindTransaction(ID []byte) (Transaction, error) {
-	iter, err := bc.NewIterator()
-	if err != nil {
-		return Transaction{}, err
-	}
-
-	for {
-		blk := iter.Next()
-
-		for _, tx := range blk.Transactions {
-			if bytes.Compare(ID, tx.ID) == 0 {
-				return tx, nil
-			}
-		}
-
-		if len(blk.PrevHash) == 0 {
-			break
-		}
-	}
-
-	return Transaction{}, errors.New("transaction does not exist")
 }
 
 // TrimmedTransaction takes a transaction and removes the pubKey + signature from the inputs. This is in preparation for signing,
@@ -346,8 +310,8 @@ func (tx Transaction) Verify(prevTXs map[string]Transaction) (bool, error) {
 	return true, nil
 }
 
-func (bc Blockchain) SignTransaction(tx Transaction, private ecdsa.PrivateKey) error {
-	prevTXs, err := bc.FindReferencedOutputs(tx)
+func (u UTXO) SignTransaction(tx Transaction, private ecdsa.PrivateKey) error {
+	prevTXs, err := u.FindReferencedOutputs(tx)
 	if err != nil {
 		fmt.Printf("error finding refrenced outputs for Signing: %v\n", err)
 		return err
@@ -360,8 +324,8 @@ func (bc Blockchain) SignTransaction(tx Transaction, private ecdsa.PrivateKey) e
 	return nil
 }
 
-func (bc Blockchain) VerifyTransaction(tx Transaction) (bool, error) {
-	prevTXs, err := bc.FindReferencedOutputs(tx)
+func (u UTXO) VerifyTransaction(tx Transaction) (bool, error) {
+	prevTXs, err := u.FindReferencedOutputs(tx)
 	if err != nil {
 		fmt.Printf("error finding referenced outputs during verification: %v\n", err)
 		return false, err
