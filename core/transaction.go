@@ -94,63 +94,6 @@ func DeserializeTransaction(data []byte) (Transaction, error) {
 	return tx, nil
 }
 
-// eventually create this where chainstate db stores state of UTXO's
-func (bc Blockchain) FindUTXOs() (map[string]*UTXOutputs, error) {
-	var (
-		// needs to be a slice of int, since one transaction can have multiple used outputs
-		// this is a map of transactionID's mapped to the output idx that is referenced by an input
-		references = make(map[string][]int)
-		UTXOs      = make(map[string]*UTXOutputs)
-	)
-
-	iter, err := bc.NewIterator()
-	if err != nil {
-		return UTXOs, err
-	}
-
-	for {
-		// first get a block
-		blk := iter.Next()
-		// then begin looping over every transaction in the block
-		for _, tx := range blk.Transactions {
-			var outputs UTXOutputs
-
-			id := hex.EncodeToString(tx.ID)
-			// next, loop over every output, and check if that output is referenced by an input
-		Outputs:
-			for outIdx, out := range tx.Vout {
-				for _, usedIdx := range references[id] {
-					// error where coinbase tx are false positives
-					if usedIdx == outIdx {
-						continue Outputs
-					}
-				}
-				outputs.Outputs = append(outputs.Outputs, out)
-				outputs.Indexes = append(outputs.Indexes, outIdx)
-				outputs.BlockHeight = blk.Height
-			}
-
-			if len(outputs.Outputs) > 0 {
-				UTXOs[id] = &outputs
-			}
-
-			// for every input, store which output it references
-			for _, in := range tx.Vin {
-				// coinbase inputs never reference an output
-				if !tx.IsCoinbase() {
-					referencedID := hex.EncodeToString(in.TransactionID)
-					references[referencedID] = append(references[referencedID], in.OutputIndex)
-				}
-			}
-		}
-		if len(blk.PrevHash) == 0 {
-			break
-		}
-
-	}
-	return UTXOs, nil
-}
-
 func (bc *Blockchain) NewTransaction(from, to string, amount int) (Transaction, error) {
 	var (
 		tx Transaction

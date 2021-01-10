@@ -62,6 +62,5 @@ func DecodeOutputs(data []byte) (UTXOutputs, error) {
 	if err != nil {
 		fmt.Printf("error decoding outputs of len %d: %v\n", len(data), err)
 	}
-
 	return uo, err
 }

@@ -116,11 +116,14 @@ func (bc *Blockchain) AddBlock(TXs []Transaction) error {
 		if err := b.Put([]byte("l"), []byte(strconv.Itoa(block.Height))); err != nil {
 			return err
 		}
-		// TODO: maybe block tip should be the height instead of the actual hash
-		//bc.Tip = block.Hash
 		return nil
 	}); err != nil {
 		fmt.Printf("error updating db with new block: %v\n", err)
+		return err
+	}
+
+	if err := utxo.Update(block); err != nil {
+		fmt.Printf("error updating UTXO during new block: %v\n", err)
 		return err
 	}
 

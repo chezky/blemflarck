@@ -56,9 +56,6 @@ func (u UTXO) Reindex() error {
 	if err := u.Blockchain.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(UTXOBucket))
 		for txID, outputs := range UTXOs {
-			for _, out := range outputs.Outputs {
-				fmt.Println("value is: ", out.Value)
-			}
 			serialized, err := outputs.SerializeOutputs(); if err != nil {
 				return err
 			}
@@ -180,4 +177,85 @@ func (u UTXO) FindTransaction(txID []byte, blockHeight int) (Transaction, error)
 		}
 	}
 	return tx, errors.New("ERROR: cannot find transaction in that block")
+}
+
+func (u UTXO) Update(block Block) error {
+	if err := u.Blockchain.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(UTXOBucket))
+
+		// for every transaction in this new block
+		for _, tx := range block.Transactions {
+			// delete all UTXOs that are now referenced by inputs
+			// skip coinbase since it has no valid inputs
+			if !tx.IsCoinbase() {
+				// first we check for referenced outputs by seeing what each input references
+				for _, in := range tx.Vin {
+					// get the current UTXOs of a referenced transaction
+					encOuts := b.Get(FormatC(in.TransactionID))
+					// if for some reason there is no actual transaction, freak out
+					if len(encOuts) == 0 {
+						return errors.New("ERROR: for some reason referenced output couldn't be found in chainstate")
+					}
+
+					outs, err := DecodeOutputs(encOuts)
+					if err != nil {
+						return err
+					}
+
+					// create a new UTXOutputs to store the newly updated outputs
+					updatedOuts := UTXOutputs{BlockHeight: outs.BlockHeight}
+
+					// for every output in the range of unspent outputs
+					for outIdx, out := range outs.Outputs {
+						// If the index of where on the transaction this output lives, is equal to the index that the input references, then it's
+						// that output that the input is referencing. Since we want every output that isn't referenced we find those that are not
+						// equal.
+						if outs.Indexes[outIdx] != in.OutputIndex {
+							// if it isn't the one being referenced, then keep it
+							updatedOuts.Outputs = append(updatedOuts.Outputs, out)
+							updatedOuts.Indexes = append(updatedOuts.Indexes, outs.Indexes[outIdx])
+						}
+					}
+
+					// if there are no more outputs, delete the entire transaction
+					if len(updatedOuts.Outputs) == 0 {
+						if err := b.Delete(FormatC(in.TransactionID)); err != nil {
+							fmt.Printf("error deleting tx with UTXOs from chainstate: %v\n", err)
+							return err
+						}
+					// otherwise update the transaction with the new amount of UTXOs
+					} else {
+						enc, err := updatedOuts.SerializeOutputs(); if err != nil {
+							return err
+						}
+						if err := b.Put(FormatC(in.TransactionID), enc); err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+			// add all new outputs to chainstate
+			var outputs = UTXOutputs{BlockHeight: block.Height, Outputs: tx.Vout}
+			// create a slice of int ranging from 0 to amountOfOutputs-1, since every output is a free output
+			for outIdx, _ := range tx.Vout {
+				outputs.Indexes = append(outputs.Indexes, outIdx)
+			}
+
+			enc, err := outputs.SerializeOutputs()
+			if err != nil {
+				return err
+			}
+
+			if err := b.Put(FormatC(tx.ID), enc); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		fmt.Printf("error during UTXO Update: %v\n", err)
+		return err
+	}
+
+	return nil
 }

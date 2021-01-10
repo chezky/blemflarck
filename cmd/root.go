@@ -27,6 +27,11 @@ func init() {
 	sendCmd.MarkFlagRequired("to")
 	sendCmd.MarkFlagRequired("amount")
 
+	// flags for getBalance
+	getBalanceCmd.Flags().StringVarP(&getBalanceAddress, "address", "a", "", "Address of whom you would like to" +
+		"get the balance of" )
+	getBalanceCmd.MarkFlagRequired("address")
+
 	// Add the commands to the root command. This allows them to be executable.
 	rootCmd.AddCommand(printWalletCmd)
 	rootCmd.AddCommand(createWalletCmd)
@@ -34,6 +39,7 @@ func init() {
 	rootCmd.AddCommand(sendCmd)
 	rootCmd.AddCommand(printChainCmd)
 	rootCmd.AddCommand(reindexCmd)
+	rootCmd.AddCommand(getBalanceCmd)
 }
 
 func Execute() {
