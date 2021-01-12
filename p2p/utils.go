@@ -31,3 +31,12 @@ func bytesToCommand(data []byte) string {
 	}
 	return fmt.Sprintf("%s", cmd)
 }
+
+func nodeIsKnow(n string) bool {
+	for _, node := range knownNode {
+		if node == n {
+			return true
+		}
+	}
+	return false
+}

@@ -16,6 +16,10 @@ const (
 	nodePort = 8080
 )
 
+var (
+	knownNode []string
+)
+
 type Version struct {
 	AddrFrom string
 	BlockHeight int
@@ -46,8 +50,6 @@ func StartServer() error {
 
 	defer bc.DB.Close()
 
-	sendVersion("10.0.0.1:8080", bc)
-
 	for {
 		conn, err := ln.Accept(); if err != nil {
 			fmt.Printf("error accepting connection: %v\n", err)
@@ -69,7 +71,7 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 
 	switch cmd {
 	case "version":
-		handleVersion(req[cmdLength:])
+		handleVersion(req[cmdLength:], bc)
 	default:
 		fmt.Printf("ERROR: %s is an unknown command\n", cmd)
 	}
