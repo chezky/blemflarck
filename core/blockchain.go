@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"strconv"
@@ -104,6 +105,32 @@ func CreateBlockchain(address string) (*Blockchain, error) {
 	fmt.Printf("Blockchain successfully created!\n")
 
 	return &bc, err
+}
+
+func (bc Blockchain) GetChainHeight() (int, error) {
+	var (
+		last int
+		err error
+	)
+
+	if err := bc.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		enc := b.Get([]byte("l"))
+		if len(enc) == 0 {
+			return errors.New("ERROR: no blockchain last found")
+		}
+
+		last, err = strconv.Atoi(string(enc))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		fmt.Printf("error getting chain height: %v\n", err)
+		return 0, err
+	}
+	return last, nil
 }
 
 // NewIterator creates a new blockchain iterator

@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -93,4 +94,14 @@ func ReverseBytes(data []byte) {
 	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
 		data[i], data[j] = data[j], data[i]
 	}
+}
+
+func GobEncode(i interface{}) ([]byte, error) {
+	var buff bytes.Buffer
+	enc := gob.NewEncoder(&buff)
+	if err := enc.Encode(i); err != nil {
+		fmt.Printf("error encoding for interface %v: %v",i, err)
+		return nil, err
+	}
+	return buff.Bytes(), nil
 }

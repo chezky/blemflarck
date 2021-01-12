@@ -11,15 +11,19 @@ import (
 
 const (
 	cmdLength = 12
+	nodeVersion = 1
+	// Eventually remove this, as all will be port https/http
+	nodePort = 8080
 )
 
-type Message struct {
+type Version struct {
 	AddrFrom string
-	Payload []byte
+	BlockHeight int
+	Version int
 }
 
 func StartServer() error {
-	addr := fmt.Sprintf("%s:%d", getIP(), 8080)
+	addr := getIP()
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Printf("error starting server: %v\n", err)
@@ -41,7 +45,9 @@ func StartServer() error {
 	}
 
 	defer bc.DB.Close()
-	
+
+	sendVersion("10.0.0.1:8080", bc)
+
 	for {
 		conn, err := ln.Accept(); if err != nil {
 			fmt.Printf("error accepting connection")
@@ -58,16 +64,38 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 		fmt.Printf("error handling connection: %v\n", err)
 	}
 
-	cmd := req[:cmdLength]
-	fmt.Printf("recieved %s command!", cmd)
+	cmd := bytesToCommand(req[:cmdLength])
+	fmt.Printf("recieved \"%s\" command!\n", cmd)
 
 	switch cmd {
+	case "version":
+		handleVersion(req[cmdLength:])
 	default:
-		fmt.Printf("ERROR: %s is an unknown command", cmd)
+		fmt.Printf("ERROR: %s is an unknown command\n", cmd)
 	}
 }
 
-func SendCmd(address string) error {
+func sendVersion(address string, bc *core.Blockchain) {
+	height, err := bc.GetChainHeight()
+	if err != nil {
+		fmt.Printf("error getting height for send version: %v\n", err)
+		return
+	}
+
+	version := Version{AddrFrom: getIP(),BlockHeight: height, Version: nodeVersion}
+
+	enc, err := core.GobEncode(version)
+	if err != nil {
+		return
+	}
+
+	if err := SendCmd(address, enc); err != nil {
+		fmt.Printf("error sending version cmd: %v", err)
+		return
+	}
+}
+
+func SendCmd(address string, payload []byte) error {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		fmt.Printf("error dialing address: %s: %v\n", address, err)
@@ -77,34 +105,8 @@ func SendCmd(address string) error {
 	defer conn.Close()
 
 	cmd := commandToBytes("version")
+	data := bytes.NewReader(append(cmd, payload...))
 
-	_, err = io.Copy(conn, bytes.NewReader(cmd))
+	_, err = io.Copy(conn, data)
 	return err
-}
-
-func getIP() string {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
-	defer conn.Close()
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String()
-}
-
-func commandToBytes(cmd string) []byte {
-	var b [cmdLength]byte
-
-	for i, c := range cmd {
-		b[i] = byte(c)
-	}
-	return b[:]
-}
-
-func bytesToCommand(data []byte) string {
-	var cmd []byte
-
-	for _, b := range data {
-		if b != 0x0 {
-			cmd = append(cmd, b)
-		}
-	}
-	return fmt.Sprintf("%s", cmd)
 }
