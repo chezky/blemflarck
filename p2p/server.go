@@ -50,7 +50,7 @@ func StartServer() error {
 
 	for {
 		conn, err := ln.Accept(); if err != nil {
-			fmt.Printf("error accepting connection")
+			fmt.Printf("error accepting connection: %v\n", err)
 			// TOOD: perhaps remove this exit call
 			return err
 		}
@@ -90,7 +90,7 @@ func sendVersion(address string, bc *core.Blockchain) {
 	}
 
 	if err := SendCmd(address, enc); err != nil {
-		fmt.Printf("error sending version cmd: %v", err)
+		fmt.Printf("error sending version cmd: %v\n", err)
 		return
 	}
 }

@@ -8,13 +8,12 @@ import (
 
 func handleVersion(req []byte) {
 	var (
-		buff bytes.Buffer
 		payload Version
 	)
 
-	dec := gob.NewDecoder(&buff)
+	dec := gob.NewDecoder(bytes.NewReader(req))
 	if err := dec.Decode(&payload); err != nil {
-		fmt.Printf("error decoding handleVersion with payload of length %d: %v", len(req), err)
+		fmt.Printf("error decoding handleVersion with payload of length %d: %v\n", len(req), err)
 		return
 	}
 
