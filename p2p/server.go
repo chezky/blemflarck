@@ -7,8 +7,16 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"time"
 )
+
+const (
+	cmdLength = 12
+)
+
+type Message struct {
+	AddrFrom string
+	Payload []byte
+}
 
 func StartServer() error {
 	addr := fmt.Sprintf("%s:%d", getIP(), 8080)
@@ -50,13 +58,12 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 		fmt.Printf("error handling connection: %v\n", err)
 	}
 
-	fmt.Printf("received command from %s\n", bytesToCommand(req))
+	cmd := req[:cmdLength]
+	fmt.Printf("recieved %s command!", cmd)
 
-	time.Sleep(4 * time.Second)
-
-	err = SendCmd(bytesToCommand(req))
-	if err != nil {
-		fmt.Println("error sending command", err)
+	switch cmd {
+	default:
+		fmt.Printf("ERROR: %s is an unknown command", cmd)
 	}
 }
 
@@ -69,7 +76,9 @@ func SendCmd(address string) error {
 
 	defer conn.Close()
 
-	_, err = io.Copy(conn, bytes.NewReader([]byte(fmt.Sprintf("%s:%d", getIP(), 8080))))
+	cmd := commandToBytes("version")
+
+	_, err = io.Copy(conn, bytes.NewReader(cmd))
 	return err
 }
 
@@ -78,6 +87,15 @@ func getIP() string {
 	defer conn.Close()
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP.String()
+}
+
+func commandToBytes(cmd string) []byte {
+	var b [cmdLength]byte
+
+	for i, c := range cmd {
+		b[i] = byte(c)
+	}
+	return b[:]
 }
 
 func bytesToCommand(data []byte) string {

@@ -36,7 +36,7 @@ func ReadWalletsFromFile() (Wallets, error) {
 
 	encWallets, err :=  ioutil.ReadFile(walletFile)
 	if err != nil {
-		if strings.Contains(err.Error(), "cannot find the file") {
+		if strings.Contains(err.Error(), " file") {
 			_ = ioutil.WriteFile(walletFile, nil, 0666)
 			return wallets, nil
 		}
