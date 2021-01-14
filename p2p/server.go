@@ -50,6 +50,8 @@ func StartServer() error {
 
 	defer bc.DB.Close()
 
+	sendVersion("10.0.0.1:8080", bc)
+
 	for {
 		conn, err := ln.Accept(); if err != nil {
 			fmt.Printf("error accepting connection: %v\n", err)
@@ -91,8 +93,49 @@ func sendVersion(address string, bc *core.Blockchain) {
 		return
 	}
 
-	if err := SendCmd(address, enc); err != nil {
+	cmd := commandToBytes("version")
+	payload := append(cmd, enc...)
+
+	if err := SendCmd(address, payload); err != nil {
 		fmt.Printf("error sending version cmd: %v\n", err)
+		return
+	}
+}
+
+type Blocks struct {
+	AddrFrom string
+	Height int
+	BlockHashes [][]byte
+}
+
+func sendGetBlocks(address string, bc *core.Blockchain) {
+	height, err := bc.GetChainHeight()
+	if err != nil {
+		fmt.Printf("error getting chain height for sendGetBlocks: %v\n", err)
+		return
+	}
+
+	tailHash, err := bc.GetTailHash()
+	if err != nil {
+		fmt.Printf("error getting tail hash for sendGetBlocks: %v\n", err)
+		return
+	}
+
+	blocks := Blocks{AddrFrom: getIP(), Height: height}
+	blocks.BlockHashes = append(blocks.BlockHashes, tailHash)
+
+	enc, err := core.GobEncode(blocks)
+	if err != nil {
+		fmt.Printf("error encoding sendGetBlocks: %v\n", err)
+		return
+	}
+
+	cmd := commandToBytes("getblocks")
+	payload := append(cmd, enc...)
+
+	err = SendCmd(address, payload)
+	if err != nil {
+		fmt.Printf("error sending \"%s\" command\n", err)
 		return
 	}
 }
@@ -106,9 +149,6 @@ func SendCmd(address string, payload []byte) error {
 
 	defer conn.Close()
 
-	cmd := commandToBytes("version")
-	data := bytes.NewReader(append(cmd, payload...))
-
-	_, err = io.Copy(conn, data)
+	_, err = io.Copy(conn, bytes.NewReader(payload))
 	return err
 }

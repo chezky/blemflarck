@@ -133,6 +133,22 @@ func (bc Blockchain) GetChainHeight() (int, error) {
 	return last, nil
 }
 
+func (bc Blockchain) GetTailHash() ([]byte, error) {
+	lastHeight, err := bc.GetChainHeight()
+	if err != nil {
+		fmt.Printf("error getting chain height for GetTailHash: %v\n", err)
+		return nil, err
+	}
+
+	blk, err := ReadBlockFromFile(lastHeight)
+	if err != nil {
+		fmt.Printf("error reading block height %d for GetTailHash: %v\n", lastHeight, err)
+		return nil, err
+	}
+
+	return blk.Hash, nil
+}
+
 // NewIterator creates a new blockchain iterator
 func (bc Blockchain) NewIterator() (*BCIterator, error) {
 	var iter BCIterator
