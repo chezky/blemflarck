@@ -20,12 +20,6 @@ var (
 	knownNode []string
 )
 
-type Version struct {
-	AddrFrom string
-	BlockHeight int
-	Version int
-}
-
 func StartServer() error {
 	addr := getIP()
 	ln, err := net.Listen("tcp", addr)
@@ -74,69 +68,12 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	switch cmd {
 	case "version":
 		handleVersion(req[cmdLength:], bc)
+	case "getblocks":
+		handleGetBlocks(req[cmdLength:], bc)
+	case "inv":
+		handleInventory(req[cmdLength:], bc)
 	default:
 		fmt.Printf("ERROR: %s is an unknown command\n", cmd)
-	}
-}
-
-func sendVersion(address string, bc *core.Blockchain) {
-	height, err := bc.GetChainHeight()
-	if err != nil {
-		fmt.Printf("error getting height for send version: %v\n", err)
-		return
-	}
-
-	version := Version{AddrFrom: getIP(),BlockHeight: height, Version: nodeVersion}
-
-	enc, err := core.GobEncode(version)
-	if err != nil {
-		return
-	}
-
-	cmd := commandToBytes("version")
-	payload := append(cmd, enc...)
-
-	if err := SendCmd(address, payload); err != nil {
-		fmt.Printf("error sending version cmd: %v\n", err)
-		return
-	}
-}
-
-type Blocks struct {
-	AddrFrom string
-	Height int
-	BlockHashes [][]byte
-}
-
-func sendGetBlocks(address string, bc *core.Blockchain) {
-	height, err := bc.GetChainHeight()
-	if err != nil {
-		fmt.Printf("error getting chain height for sendGetBlocks: %v\n", err)
-		return
-	}
-
-	tailHash, err := bc.GetTailHash()
-	if err != nil {
-		fmt.Printf("error getting tail hash for sendGetBlocks: %v\n", err)
-		return
-	}
-
-	blocks := Blocks{AddrFrom: getIP(), Height: height}
-	blocks.BlockHashes = append(blocks.BlockHashes, tailHash)
-
-	enc, err := core.GobEncode(blocks)
-	if err != nil {
-		fmt.Printf("error encoding sendGetBlocks: %v\n", err)
-		return
-	}
-
-	cmd := commandToBytes("getblocks")
-	payload := append(cmd, enc...)
-
-	err = SendCmd(address, payload)
-	if err != nil {
-		fmt.Printf("error sending \"%s\" command\n", err)
-		return
 	}
 }
 
