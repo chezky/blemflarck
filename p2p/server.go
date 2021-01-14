@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	knownNodes map[string]*Address
+	knownNodes = make(map[string]*Address)
 	nodeVersion int32 = 1
 )
 
@@ -59,7 +59,9 @@ func StartServer() error {
 
 	defer bc.DB.Close()
 
-	sendVersion("10.0.0.1:8080", bc)
+	if getIP() != "10.0.0.1:8080" {
+		sendVersion("10.0.0.1:8080", bc)
+	}
 
 	for {
 		conn, err := ln.Accept(); if err != nil {
