@@ -7,13 +7,17 @@ import (
 
 
 func sendVersion(address string, bc *core.Blockchain) {
+	if knownNodes[address] != nil {
+		knownNodes[address] = createNewAddress(address)
+	}
+
 	height, err := bc.GetChainHeight()
 	if err != nil {
 		fmt.Printf("error getting height for send version: %v\n", err)
 		return
 	}
 
-	version := Version{AddrFrom: getIP(),BlockHeight: height, Version: nodeVersion}
+	version := createVersion(address, height)
 
 	enc, err := core.GobEncode(version)
 	if err != nil {
@@ -27,6 +31,12 @@ func sendVersion(address string, bc *core.Blockchain) {
 		fmt.Printf("error sending version cmd: %v\n", err)
 		return
 	}
+}
+
+// sendVerack is sent to acknowledge a Version handshake was received. Once verack is sent back, we can verify that a version is
+func sendVerack(address string) {
+	cmd := commandToBytes("verack")
+	SendCmd(address, cmd)
 }
 
 func sendGetBlocks(address string) {

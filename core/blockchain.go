@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -107,7 +108,7 @@ func CreateBlockchain(address string) (*Blockchain, error) {
 	return &bc, err
 }
 
-func (bc Blockchain) GetChainHeight() (int, error) {
+func (bc Blockchain) GetChainHeight() (int32, error) {
 	var (
 		last int
 		err error
@@ -130,7 +131,7 @@ func (bc Blockchain) GetChainHeight() (int, error) {
 		fmt.Printf("error getting chain height: %v\n", err)
 		return 0, err
 	}
-	return last, nil
+	return int32(last), nil
 }
 
 func (bc Blockchain) GetTailHash() ([]byte, error) {
@@ -140,13 +141,23 @@ func (bc Blockchain) GetTailHash() ([]byte, error) {
 		return nil, err
 	}
 
-	blk, err := ReadBlockFromFile(lastHeight)
+	blk, err := ReadBlockFromFile(int(lastHeight))
 	if err != nil {
 		fmt.Printf("error reading block height %d for GetTailHash: %v\n", lastHeight, err)
 		return nil, err
 	}
 
 	return blk.Hash, nil
+}
+
+func (bc Blockchain) CompareBlocks(height int32, hash []byte) (bool, error) {
+	blk, err := ReadBlockFromFile(int(height))
+	if err != nil {
+		fmt.Printf("error reading block height %d from file for CompareBlocks: %v\n", height, err)
+		return false, err
+	}
+
+	return bytes.Compare(hash, blk.Hash) == 0, nil
 }
 
 // NewIterator creates a new blockchain iterator

@@ -179,6 +179,7 @@ func (b Block) SaveToFile() error {
 }
 
 // ReadBlocksFromFile reads a block in from a file, with the file name being its height followed by .dat. For example, 400.dat
+//TODO: perhaps we should make height an in32 instead of int
 func ReadBlockFromFile(height int) (Block, error) {
 	var block Block
 

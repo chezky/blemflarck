@@ -7,18 +7,33 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"time"
 )
 
 const (
 	cmdLength = 12
-	nodeVersion = 1
 	// Eventually remove this, as all will be port https/http
 	nodePort = 8080
 )
 
 var (
-	knownNode []string
+	knownNodes map[string]*Address
+	nodeVersion int32 = 1
 )
+
+type Address struct {
+	Address string
+	Handshake bool
+	Timestamp int64
+}
+
+func createNewAddress(address string) *Address {
+	return &Address{
+		Address:   address,
+		Handshake: false,
+		Timestamp: time.Now().Unix(),
+	}
+}
 
 func StartServer() error {
 	addr := getIP()
@@ -68,6 +83,8 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	switch cmd {
 	case "version":
 		handleVersion(req[cmdLength:], bc)
+	case "verack":
+		handleVerack(conn.RemoteAddr().String())
 	case "getblocks":
 		handleGetBlocks(req[cmdLength:], bc)
 	case "inv":

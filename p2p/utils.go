@@ -33,8 +33,8 @@ func bytesToCommand(data []byte) string {
 }
 
 func nodeIsKnow(n string) bool {
-	for _, node := range knownNode {
-		if node == n {
+	for addr, _ := range knownNodes {
+		if addr == n {
 			return true
 		}
 	}
