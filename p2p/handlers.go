@@ -14,6 +14,10 @@ import (
 //L -> R: Send verack message after receiving version message from R
 //L:      Sets version to the minimum of the 2 versions
 
+var (
+	blocksNeeded = make(map[int32][]byte)
+)
+
 func handleVersion(req []byte, bc *core.Blockchain) {
 	var (
 		payload Version
@@ -118,7 +122,9 @@ func handleGetBlocks(req []byte, address NetAddress, bc *core.Blockchain) {
 	sendInv(address, inv)
 }
 
-func handleInventory(req []byte, bc *core.Blockchain) {
+// handleInventory handles calls to inventory. This can be triggered unsolicited, or in response to getblocks. When handling blocks, store the list of blocks you need to get,
+// and then get the blocks from multiple places.
+func handleInventory(req []byte, address NetAddress, bc *core.Blockchain) {
 	var payload Inventory
 
 	dec := gob.NewDecoder(bytes.NewReader(req))
@@ -128,7 +134,25 @@ func handleInventory(req []byte, bc *core.Blockchain) {
 	}
 
 	if payload.Kind == "blocks" {
-		blocksNeeded := payload.Height
-		fmt.Printf("So i need %v\n", blocksNeeded)
+		// populate the map blocksNeeded with all the new blocks to get
+		for idx, height := range payload.Height {
+			blocksNeeded[height] = payload.Items[idx]
+		}
+
+		sendGetData("blocks")
+	}
+}
+
+func handleGetData(req []byte, address NetAddress, bc *core.Blockchain) {
+	var payload GetData
+
+	dec := gob.NewDecoder(bytes.NewReader(req))
+	if err := dec.Decode(&payload); err != nil {
+		fmt.Printf("error deocding during handleGetData: %v\n", err)
+		return
+	}
+
+	if payload.Kind == "blocks" {
+		fmt.Println("Ugh not he wants block height: ", payload.Height)
 	}
 }

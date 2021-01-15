@@ -30,6 +30,12 @@ type GetBlocks struct {
 	Hash []byte // Hash of the last block you have
 }
 
+type GetData struct {
+	Height int32
+	Hash []byte
+	Kind string
+}
+
 type Address struct {
 	Address NetAddress
 	Handshake bool
