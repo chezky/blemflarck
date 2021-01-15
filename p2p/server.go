@@ -89,7 +89,9 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	case "inv":
 		handleInventory(req[cmdLength:], addr, bc)
 	case "getdata":
-		handleGetData(req[cmdLength:], addr, bc)
+		handleGetData(req[cmdLength:], addr)
+	case "block":
+		handleBlock(req[cmdLength:], bc)
 	default:
 		fmt.Printf("ERROR: %s is an unknown command\n", cmd)
 	}

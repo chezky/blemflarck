@@ -143,7 +143,7 @@ func handleInventory(req []byte, address NetAddress, bc *core.Blockchain) {
 	}
 }
 
-func handleGetData(req []byte, address NetAddress, bc *core.Blockchain) {
+func handleGetData(req []byte, address NetAddress) {
 	var payload GetData
 
 	dec := gob.NewDecoder(bytes.NewReader(req))
@@ -153,6 +153,35 @@ func handleGetData(req []byte, address NetAddress, bc *core.Blockchain) {
 	}
 
 	if payload.Kind == "blocks" {
-		fmt.Println("Ugh not he wants block height: ", payload.Height)
+		fmt.Printf("Address %s requested block \"%d\"\n", address.IP.String(), payload.Height)
+		blk, err := core.ReadBlockFromFile(int(payload.Height))
+		if err != nil {
+			fmt.Printf("error reading in block height \"%d\" for handleGetData: %v\n", payload.Height, err)
+			return
+		}
+
+		if bytes.Compare(blk.Hash, payload.Hash) != 0 {
+			//TODO:// handle this. Maybe have some sort of way to send back errors
+			fmt.Printf("ERROR: block #%d and requested block #%d don't have matching hashes\n", blk.Height, payload.Height)
+			return
+		}
+
+		sendBlock(blk, address)
+	}
+}
+
+func handleBlock(req []byte, bc *core.Blockchain) {
+	// TODO: wow i need tons of block verification work here
+	var block core.Block
+
+	dec := gob.NewDecoder(bytes.NewReader(req))
+	if err := dec.Decode(&block); err != nil {
+		fmt.Printf("error decoding block for handleBlock, with request of length %d: %v", len(req), err)
+		return
+	}
+
+	if err := bc.UpdateWithNewBlock(block); err != nil {
+		fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
+		return
 	}
 }

@@ -130,6 +130,38 @@ func (bc *Blockchain) AddBlock(TXs []Transaction) error {
 	return nil
 }
 
+// UpdateWithNewBlock updates the blockchain with a new block. Used when receiving a block from another node.
+func (bc *Blockchain) UpdateWithNewBlock(block Block) error {
+	utxo := UTXO{bc}
+
+	err := block.SaveToFile()
+	if err != nil {
+		fmt.Printf("error creating file for block #%d: %v\n", block.Height, err)
+		return err
+	}
+
+	if err := bc.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		if err := b.Put(FormatB(block.Hash), []byte(strconv.Itoa(block.Height))); err != nil {
+			return err
+		}
+		if err := b.Put([]byte("l"), []byte(strconv.Itoa(block.Height))); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		fmt.Printf("error updating db with new block: %v\n", err)
+		return err
+	}
+
+	if err := utxo.Update(block); err != nil {
+		fmt.Printf("error updating UTXO during new block: %v\n", err)
+		return err
+	}
+
+	return nil
+}
+
 // EncodeBlock encodes a block to a byte slice, this allows the block to be saved to file.
 func (b Block) EncodeBlock() ([]byte, error) {
 	var buff bytes.Buffer

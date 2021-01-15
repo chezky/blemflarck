@@ -113,3 +113,16 @@ func sendGetData(kind string) {
 		}
 	}
 }
+
+func sendBlock(block core.Block, address NetAddress) {
+	enc, err := block.EncodeBlock()
+	if err != nil {
+		fmt.Printf("error encoding block for block height %d in sendBlock: %v\n", block.Height, err)
+		return
+	}
+
+	cmd := commandToBytes("block")
+	payload := append(cmd, enc...)
+
+	SendCmd(address.String(), payload)
+}
