@@ -14,6 +14,10 @@ import (
 //L -> R: Send verack message after receiving version message from R
 //L:      Sets version to the minimum of the 2 versions
 
+var (
+	blocksNeeded = make(map[int32][]byte)
+)
+
 func handleVersion(req []byte, bc *core.Blockchain) {
 	var (
 		payload Version
@@ -104,20 +108,23 @@ func handleGetBlocks(req []byte, address NetAddress, bc *core.Blockchain) {
 	}
 
 	for i:=payload.Height; i < myHeight; i++ {
-		blk, err := core.ReadBlockFromFile(int(i))
+		// over here is i+1 since if i starts at their height we want to start with the next block up
+		blk, err := core.ReadBlockFromFile(int(i+1))
 		if err != nil {
 			fmt.Printf("error reading in block height \"%d\" for handleGetBlocks: %v\n", i, err)
 			return
 		}
-
-		inv.Height = append(inv.Height, i)
+		// same here, we start with their height +1
+		inv.Height = append(inv.Height, i+1)
 		inv.Items = append(inv.Items, blk.Hash)
 	}
 
 	sendInv(address, inv)
 }
 
-func handleInventory(req []byte, bc *core.Blockchain) {
+// handleInventory handles calls to inventory. This can be triggered unsolicited, or in response to getblocks. When handling blocks, store the list of blocks you need to get,
+// and then get the blocks from multiple places.
+func handleInventory(req []byte, address NetAddress, bc *core.Blockchain) {
 	var payload Inventory
 
 	dec := gob.NewDecoder(bytes.NewReader(req))
@@ -127,7 +134,56 @@ func handleInventory(req []byte, bc *core.Blockchain) {
 	}
 
 	if payload.Kind == "blocks" {
-		blocksNeeded := payload.Height
-		fmt.Printf("So i need %v\n", blocksNeeded)
+		// populate the map blocksNeeded with all the new blocks to get
+		for idx, height := range payload.Height {
+			blocksNeeded[height] = payload.Items[idx]
+		}
+
+		sendGetData("blocks")
 	}
+}
+
+func handleGetData(req []byte, address NetAddress) {
+	var payload GetData
+
+	dec := gob.NewDecoder(bytes.NewReader(req))
+	if err := dec.Decode(&payload); err != nil {
+		fmt.Printf("error deocding during handleGetData: %v\n", err)
+		return
+	}
+
+	if payload.Kind == "blocks" {
+		fmt.Printf("Address %s requested block \"%d\"\n", address.IP.String(), payload.Height)
+		blk, err := core.ReadBlockFromFile(int(payload.Height))
+		if err != nil {
+			fmt.Printf("error reading in block height \"%d\" for handleGetData: %v\n", payload.Height, err)
+			return
+		}
+
+		if bytes.Compare(blk.Hash, payload.Hash) != 0 {
+			//TODO:// handle this. Maybe have some sort of way to send back errors
+			fmt.Printf("ERROR: block #%d and requested block #%d don't have matching hashes\n", blk.Height, payload.Height)
+			return
+		}
+
+		sendBlock(blk, address)
+	}
+}
+
+func handleBlock(req []byte, bc *core.Blockchain) {
+	// TODO: wow i need tons of block verification work here
+	var block core.Block
+
+	dec := gob.NewDecoder(bytes.NewReader(req))
+	if err := dec.Decode(&block); err != nil {
+		fmt.Printf("error decoding block for handleBlock, with request of length %d: %v", len(req), err)
+		return
+	}
+
+	if err := bc.UpdateWithNewBlock(block); err != nil {
+		fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
+		return
+	}
+
+	fmt.Printf("successfully added block #%d\n", block.Height)
 }

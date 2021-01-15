@@ -18,7 +18,7 @@ func startServer() func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
 		err := p2p.StartServer()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err,"\n")
 		}
 	}
 }
