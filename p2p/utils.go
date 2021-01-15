@@ -5,11 +5,18 @@ import (
 	"net"
 )
 
-func getIP() string {
+func getIPString() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
 	defer conn.Close()
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return fmt.Sprintf("%s:%d", localAddr.IP.String(), nodePort)
+}
+
+func nodeIP() net.IP {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP
 }
 
 func commandToBytes(cmd string) []byte {
@@ -30,4 +37,13 @@ func bytesToCommand(data []byte) string {
 		}
 	}
 	return fmt.Sprintf("%s", cmd)
+}
+
+func nodeIsKnow(n net.IP) bool {
+	for addr, _ := range knownNodes {
+		if addr == n.String() {
+			return true
+		}
+	}
+	return false
 }

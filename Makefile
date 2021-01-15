@@ -1,2 +1,10 @@
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Linux)
+TARGET = blem
+else
+TARGET = blem.exe
+endif
+
 build:
-	@go build -o blem.exe main.go
+	go build -o $(TARGET) main.go

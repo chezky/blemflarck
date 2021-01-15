@@ -1,10 +1,12 @@
 package core
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"io/ioutil"
 	"strconv"
 	"time"
 )
@@ -65,8 +67,20 @@ func CreateBlockchain(address string) (*Blockchain, error) {
 		return &bc, nil
 	}
 
-	// create a genesis block
-	genesis := bc.CreateGenesisBlock(address)
+	enc, err := ioutil.ReadFile("./genesis")
+	if err != nil {
+		fmt.Printf("error reading in ./gensis file: %v\n", err)
+		return nil, err
+	}
+
+	genesis, err := DecodeBlock(enc)
+	if err != nil {
+		fmt.Printf("error decoding genesis block: %v\n", err)
+		return nil, err
+	}
+
+	// create a genesis block - UNCOMMENT here to create a completely new blockchain.
+	//genesis := bc.CreateGenesisBlock(address)
 
 	// save the genesis block
 	err = genesis.SaveToFile()
@@ -107,7 +121,7 @@ func CreateBlockchain(address string) (*Blockchain, error) {
 	return &bc, err
 }
 
-func (bc Blockchain) GetChainHeight() (int, error) {
+func (bc Blockchain) GetChainHeight() (int32, error) {
 	var (
 		last int
 		err error
@@ -130,7 +144,33 @@ func (bc Blockchain) GetChainHeight() (int, error) {
 		fmt.Printf("error getting chain height: %v\n", err)
 		return 0, err
 	}
-	return last, nil
+	return int32(last), nil
+}
+
+func (bc Blockchain) GetTailHash() ([]byte, error) {
+	lastHeight, err := bc.GetChainHeight()
+	if err != nil {
+		fmt.Printf("error getting chain height for GetTailHash: %v\n", err)
+		return nil, err
+	}
+
+	blk, err := ReadBlockFromFile(int(lastHeight))
+	if err != nil {
+		fmt.Printf("error reading block height %d for GetTailHash: %v\n", lastHeight, err)
+		return nil, err
+	}
+
+	return blk.Hash, nil
+}
+
+func (bc Blockchain) CompareBlocks(height int32, hash []byte) (bool, error) {
+	blk, err := ReadBlockFromFile(int(height))
+	if err != nil {
+		fmt.Printf("error reading block height %d from file for CompareBlocks: %v\n", height, err)
+		return false, err
+	}
+
+	return bytes.Compare(hash, blk.Hash) == 0, nil
 }
 
 // NewIterator creates a new blockchain iterator

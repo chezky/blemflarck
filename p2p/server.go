@@ -11,19 +11,16 @@ import (
 
 const (
 	cmdLength = 12
-	nodeVersion = 1
-	// Eventually remove this, as all will be port https/http
-	nodePort = 8080
+	nodePort int = 8069
 )
 
-type Version struct {
-	AddrFrom string
-	BlockHeight int
-	Version int
-}
+var (
+	knownNodes = make(map[string]*Address)
+	nodeVersion int32 = 1
+)
 
 func StartServer() error {
-	addr := getIP()
+	addr := getIPString()
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Printf("error starting server: %v\n", err)
@@ -31,6 +28,8 @@ func StartServer() error {
 	}
 
 	fmt.Printf("starting server on address: %s\n", addr)
+	fmt.Println("-------------")
+	fmt.Println()
 
 	defer ln.Close()
 
@@ -46,7 +45,14 @@ func StartServer() error {
 
 	defer bc.DB.Close()
 
-	sendVersion("10.0.0.1:8080", bc)
+	// hardcoded now for testing locally
+	if getIPString() != fmt.Sprintf("%s:%d", "10.0.0.1", nodePort){
+		addr := NetAddress{
+			IP:   net.IPv4(10,0,0,1),
+			Port: nodePort,
+		}
+		sendVersion(addr, bc)
+	}
 
 	for {
 		conn, err := ln.Accept(); if err != nil {
@@ -64,34 +70,26 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 		fmt.Printf("error handling connection: %v\n", err)
 	}
 
+	fullAddr := conn.RemoteAddr().(*net.TCPAddr)
+	addr := NetAddress{
+		IP:   fullAddr.IP,
+	}
+	addr.SetPort()
+
 	cmd := bytesToCommand(req[:cmdLength])
 	fmt.Printf("recieved \"%s\" command!\n", cmd)
 
 	switch cmd {
 	case "version":
-		handleVersion(req[cmdLength:])
+		handleVersion(req[cmdLength:], bc)
+	case "verack":
+		handleVerack(addr)
+	case "getblocks":
+		handleGetBlocks(req[cmdLength:], addr, bc)
+	case "inv":
+		handleInventory(req[cmdLength:], bc)
 	default:
 		fmt.Printf("ERROR: %s is an unknown command\n", cmd)
-	}
-}
-
-func sendVersion(address string, bc *core.Blockchain) {
-	height, err := bc.GetChainHeight()
-	if err != nil {
-		fmt.Printf("error getting height for send version: %v\n", err)
-		return
-	}
-
-	version := Version{AddrFrom: getIP(),BlockHeight: height, Version: nodeVersion}
-
-	enc, err := core.GobEncode(version)
-	if err != nil {
-		return
-	}
-
-	if err := SendCmd(address, enc); err != nil {
-		fmt.Printf("error sending version cmd: %v\n", err)
-		return
 	}
 }
 
@@ -104,9 +102,6 @@ func SendCmd(address string, payload []byte) error {
 
 	defer conn.Close()
 
-	cmd := commandToBytes("version")
-	data := bytes.NewReader(append(cmd, payload...))
-
-	_, err = io.Copy(conn, data)
+	_, err = io.Copy(conn, bytes.NewReader(payload))
 	return err
 }
