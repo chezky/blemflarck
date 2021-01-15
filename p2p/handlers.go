@@ -89,7 +89,7 @@ func handleGetBlocks(req []byte, address NetAddress, bc *core.Blockchain) {
 
 	if bytes.Compare(blk.Hash, payload.Hash) != 0 {
 	//	TODO: handle this MUCH better
-		fmt.Printf("ERROR: block height \"%d\" on address %s has a different hash than this node!\n", payload.Height, address.String())
+		fmt.Printf("ERROR: block height \"%d\" on address %s has a different hash than this node does!\n", payload.Height, address.String())
 		return
 	}
 

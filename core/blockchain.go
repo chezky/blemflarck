@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"io/ioutil"
 	"strconv"
 	"time"
 )
@@ -66,8 +67,20 @@ func CreateBlockchain(address string) (*Blockchain, error) {
 		return &bc, nil
 	}
 
-	// create a genesis block
-	genesis := bc.CreateGenesisBlock(address)
+	enc, err := ioutil.ReadFile("./genesis")
+	if err != nil {
+		fmt.Printf("error reading in ./gensis file: %v\n", err)
+		return nil, err
+	}
+
+	genesis, err := DecodeBlock(enc)
+	if err != nil {
+		fmt.Printf("error decoding genesis block: %v\n", err)
+		return nil, err
+	}
+
+	// create a genesis block - UNCOMMENT here to create a completely new blockchain.
+	//genesis := bc.CreateGenesisBlock(address)
 
 	// save the genesis block
 	err = genesis.SaveToFile()
