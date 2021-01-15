@@ -6,9 +6,9 @@ import (
 )
 
 
-func sendVersion(address string, bc *core.Blockchain) {
-	if knownNodes[address] != nil {
-		knownNodes[address] = createNewAddress(address)
+func sendVersion(address NetAddress, bc *core.Blockchain) {
+	if knownNodes[address.IP.String()] != nil {
+		knownNodes[address.IP.String()] = createNewAddress(address)
 	}
 
 	height, err := bc.GetChainHeight()
@@ -17,7 +17,7 @@ func sendVersion(address string, bc *core.Blockchain) {
 		return
 	}
 
-	version := createVersion(address, height)
+	version := createVersion(address.IP, address.Port, height)
 
 	enc, err := core.GobEncode(version)
 	if err != nil {
@@ -27,7 +27,7 @@ func sendVersion(address string, bc *core.Blockchain) {
 	cmd := commandToBytes("version")
 	payload := append(cmd, enc...)
 
-	if err := SendCmd(address, payload); err != nil {
+	if err := SendCmd(address.String(), payload); err != nil {
 		fmt.Printf("error sending version cmd: %v\n", err)
 		return
 	}
@@ -39,8 +39,8 @@ func sendVerack(address string) {
 	SendCmd(address, cmd)
 }
 
-func sendGetBlocks(address string) {
-	getBlocks := Version{AddrFrom: getIP()}
+func sendGetBlocks(address NetAddress) {
+	getBlocks := Version{AddrFrom: address}
 
 	enc, err := core.GobEncode(getBlocks)
 	if err != nil {
@@ -51,14 +51,14 @@ func sendGetBlocks(address string) {
 	cmd := commandToBytes("getblocks")
 	payload := append(cmd, enc...)
 
-	err = SendCmd(address, payload)
+	err = SendCmd(address.String(), payload)
 	if err != nil {
 		fmt.Printf("error sending \"%s\" command: %v\n", "getblocks", err)
 		return
 	}
 }
 
-func sendInv(address string, bc *core.Blockchain, item string) {
+func sendInv(address NetAddress, bc *core.Blockchain, item string) {
 	height, err := bc.GetChainHeight()
 	if err != nil {
 		fmt.Printf("error getting height for sendInv: %v\n", err)
@@ -72,7 +72,7 @@ func sendInv(address string, bc *core.Blockchain, item string) {
 	}
 
 	data := Inventory{
-		AddrFrom:    getIP(),
+		AddrFrom:    address,
 		Height:      height,
 		Hashes: [][]byte{tailHash},
 		Item: item,
@@ -87,7 +87,7 @@ func sendInv(address string, bc *core.Blockchain, item string) {
 	cmd := commandToBytes("inv")
 	payload := append(cmd, enc...)
 
-	if err := SendCmd(address, payload); err != nil {
+	if err := SendCmd(address.String(), payload); err != nil {
 		fmt.Printf("error sending getInv command to %s: %v", address, err)
 		return
 	}

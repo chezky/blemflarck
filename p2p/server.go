@@ -13,7 +13,7 @@ import (
 const (
 	cmdLength = 12
 	// Eventually remove this, as all will be port https/http
-	nodePort = 8080
+	nodePort int16 = 8080
 )
 
 var (
@@ -22,21 +22,21 @@ var (
 )
 
 type Address struct {
-	Address string
+	Address NetAddress
 	Handshake bool
 	Timestamp int64
 }
 
-func createNewAddress(address string) *Address {
+func createNewAddress(addr NetAddress) *Address {
 	return &Address{
-		Address:   address,
+		Address: addr,
 		Handshake: false,
 		Timestamp: time.Now().Unix(),
 	}
 }
 
 func StartServer() error {
-	addr := getIP()
+	addr := getIPString()
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Printf("error starting server: %v\n", err)
@@ -59,8 +59,13 @@ func StartServer() error {
 
 	defer bc.DB.Close()
 
-	if getIP() != "10.0.0.1:8080" {
-		sendVersion("10.0.0.1:8080", bc)
+	// hardcoded now for testing locally
+	if getIPString() != "10.0.0.1:8080" {
+		addr := NetAddress{
+			IP:   []byte("10.0.0.1"),
+			Port: 8080,
+		}
+		sendVersion(addr, bc)
 	}
 
 	for {
@@ -86,7 +91,7 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	case "version":
 		handleVersion(req[cmdLength:], bc)
 	case "verack":
-		handleVerack(conn.RemoteAddr().String())
+		handleVerack(conn.LocalAddr().String())
 	case "getblocks":
 		handleGetBlocks(req[cmdLength:], bc)
 	case "inv":
