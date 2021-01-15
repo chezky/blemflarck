@@ -7,7 +7,7 @@ import (
 
 
 func sendVersion(address NetAddress, bc *core.Blockchain) {
-	if knownNodes[address.IP.String()] != nil {
+	if knownNodes[address.IP.String()] == nil {
 		knownNodes[address.IP.String()] = createNewAddress(address)
 	}
 
@@ -31,6 +31,7 @@ func sendVersion(address NetAddress, bc *core.Blockchain) {
 		fmt.Printf("error sending version cmd: %v\n", err)
 		return
 	}
+	fmt.Printf("sent version to address %s\n", address.String())
 }
 
 // sendVerack is sent to acknowledge a Version handshake was received. Once verack is sent back, we can verify that a version is

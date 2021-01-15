@@ -44,6 +44,8 @@ func StartServer() error {
 	}
 
 	fmt.Printf("starting server on address: %s\n", addr)
+	fmt.Println("-------------")
+	fmt.Println()
 
 	defer ln.Close()
 
@@ -62,7 +64,7 @@ func StartServer() error {
 	// hardcoded now for testing locally
 	if getIPString() != "10.0.0.1:8080" {
 		addr := NetAddress{
-			IP:   []byte("10.0.0.1"),
+			IP:   net.IPv4(10,0,0,1),
 			Port: 8080,
 		}
 		sendVersion(addr, bc)

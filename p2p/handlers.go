@@ -48,7 +48,7 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 		sendGetBlocks(payload.AddrFrom)
 	} else if myBlockHeight < payload.BlockHeight {
 		// TODO: switch this to ask for a different node than the one we just got blocks from
-		sendVersion(payload.AddrFrom, bc)
+		//sendVersion(payload.AddrFrom, bc)
 		// handle this
 	} else {
 		fmt.Println("Blockchain is up to date!")
