@@ -184,4 +184,6 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 		fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
 		return
 	}
+
+	fmt.Printf("successfully added block #%d\n", block.Height)
 }
