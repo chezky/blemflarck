@@ -7,33 +7,17 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"time"
 )
 
 const (
 	cmdLength = 12
-	// Eventually remove this, as all will be port https/http
-	nodePort int16 = 8080
+	nodePort int16 = 42069
 )
 
 var (
 	knownNodes = make(map[string]*Address)
 	nodeVersion int32 = 1
 )
-
-type Address struct {
-	Address NetAddress
-	Handshake bool
-	Timestamp int64
-}
-
-func createNewAddress(addr NetAddress) *Address {
-	return &Address{
-		Address: addr,
-		Handshake: false,
-		Timestamp: time.Now().Unix(),
-	}
-}
 
 func StartServer() error {
 	addr := getIPString()
@@ -86,6 +70,12 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 		fmt.Printf("error handling connection: %v\n", err)
 	}
 
+	fullAddr := conn.LocalAddr().(*net.TCPAddr)
+	addr := NetAddress{
+		IP:   fullAddr.IP,
+		Port: int16(fullAddr.Port),
+	}
+
 	cmd := bytesToCommand(req[:cmdLength])
 	fmt.Printf("recieved \"%s\" command!\n", cmd)
 
@@ -93,9 +83,9 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	case "version":
 		handleVersion(req[cmdLength:], bc)
 	case "verack":
-		handleVerack(conn.LocalAddr().String())
+		handleVerack(addr)
 	case "getblocks":
-		handleGetBlocks(req[cmdLength:], bc)
+		handleGetBlocks(req[cmdLength:], addr, bc)
 	case "inv":
 		handleInventory(req[cmdLength:], bc)
 	default:

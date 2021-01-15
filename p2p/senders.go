@@ -40,8 +40,23 @@ func sendVerack(address string) {
 	SendCmd(address, cmd)
 }
 
-func sendGetBlocks(address NetAddress) {
-	getBlocks := Version{AddrFrom: address}
+func sendGetBlocks(address NetAddress, bc *core.Blockchain) {
+	height, err := bc.GetChainHeight()
+	if err != nil {
+		fmt.Printf("error getting chain height for sendGetBlocks: %v\n", err)
+		return
+	}
+
+	hash, err := bc.GetTailHash()
+	if err != nil {
+		fmt.Printf("error getting tail hash for sendGetBlocks: %v\n", err)
+		return
+	}
+
+	getBlocks := GetBlocks{
+		Height: height,
+		Hash:   hash,
+	}
 
 	enc, err := core.GobEncode(getBlocks)
 	if err != nil {

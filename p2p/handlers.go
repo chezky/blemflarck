@@ -45,35 +45,33 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 
 	if myBlockHeight > payload.BlockHeight {
 		fmt.Printf("my block height is higher haha!\n")
-		sendGetBlocks(payload.AddrFrom)
 	} else if myBlockHeight < payload.BlockHeight {
-		// TODO: switch this to ask for a different node than the one we just got blocks from
-		//sendVersion(payload.AddrFrom, bc)
-		// handle this
+		sendGetBlocks(payload.AddrFrom, bc)
 	} else {
 		fmt.Println("Blockchain is up to date!")
 	}
 
 	// Update version to lower of the two nodes
 	if payload.Version > nodeVersion {
+		fmt.Printf("switching version \"%d\" to match node %s\n", payload.Version, payload.AddrFrom.String())
 		nodeVersion = payload.Version
 	}
 }
 
 // handleVerack is responsible for setting a nodes status to successful handshake if a verack message is received.
-func handleVerack(address string) {
+func handleVerack(address NetAddress) {
 	// make sure it is actually coming from the right place
-	fmt.Println("verack from:", address)
-	if knownNodes[address] != nil {
+	fmt.Println("verack from:", address.String())
+	if knownNodes[address.IP.String()] != nil {
 		fmt.Printf("Successfully sent version message, and received verack!\n")
-		knownNodes[address].Handshake = true
+		knownNodes[address.IP.String()].Handshake = true
 	}
 	fmt.Println("known nodes", knownNodes)
 }
 
 // What I want to do, is when I get a "getblocks" command, verify that the
-func handleGetBlocks(req []byte, bc *core.Blockchain) {
-	var payload Version
+func handleGetBlocks(req []byte, address NetAddress, bc *core.Blockchain) {
+	var payload GetBlocks
 
 	dec := gob.NewDecoder(bytes.NewReader(req))
 	if err := dec.Decode(&payload); err != nil {
@@ -81,7 +79,9 @@ func handleGetBlocks(req []byte, bc *core.Blockchain) {
 		return
 	}
 
-	sendInv(payload.AddrFrom, bc, "blocks")
+	fmt.Printf("getting blocks starting with height %d for address %s\n", payload.Height+1, address.String())
+
+	sendInv(address, bc, "blocks")
 }
 
 func handleInventory(req []byte, bc *core.Blockchain) {
@@ -106,6 +106,4 @@ func handleInventory(req []byte, bc *core.Blockchain) {
 			return
 		}
 	}
-
-
 }
