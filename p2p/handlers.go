@@ -104,13 +104,14 @@ func handleGetBlocks(req []byte, address NetAddress, bc *core.Blockchain) {
 	}
 
 	for i:=payload.Height; i < myHeight; i++ {
-		blk, err := core.ReadBlockFromFile(int(i))
+		// over here is i+1 since if i starts at their height we want to start with the next block up
+		blk, err := core.ReadBlockFromFile(int(i+1))
 		if err != nil {
 			fmt.Printf("error reading in block height \"%d\" for handleGetBlocks: %v\n", i, err)
 			return
 		}
-
-		inv.Height = append(inv.Height, i)
+		// same here, we start with their height +1
+		inv.Height = append(inv.Height, i+1)
 		inv.Items = append(inv.Items, blk.Hash)
 	}
 
