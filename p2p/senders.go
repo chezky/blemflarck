@@ -74,27 +74,8 @@ func sendGetBlocks(address NetAddress, bc *core.Blockchain) {
 	}
 }
 
-func sendInv(address NetAddress, bc *core.Blockchain, item string) {
-	height, err := bc.GetChainHeight()
-	if err != nil {
-		fmt.Printf("error getting height for sendInv: %v\n", err)
-		return
-	}
-
-	tailHash, err := bc.GetTailHash()
-	if err != nil {
-		fmt.Printf("error getting tail hash for sendInv: %v\n", err)
-		return
-	}
-
-	data := Inventory{
-		AddrFrom:    address,
-		Height:      height,
-		Hashes: [][]byte{tailHash},
-		Item: item,
-	}
-
-	enc, err := core.GobEncode(data)
+func sendInv(address NetAddress, inv *Inventory) {
+	enc, err := core.GobEncode(&inv)
 	if err != nil {
 		fmt.Printf("error encoding payload for sendInv: %v\n", err)
 		return

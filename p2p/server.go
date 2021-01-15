@@ -73,8 +73,8 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	fullAddr := conn.RemoteAddr().(*net.TCPAddr)
 	addr := NetAddress{
 		IP:   fullAddr.IP,
-		Port: fullAddr.Port,
 	}
+	addr.SetPort()
 
 	cmd := bytesToCommand(req[:cmdLength])
 	fmt.Printf("recieved \"%s\" command!\n", cmd)

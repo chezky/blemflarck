@@ -81,7 +81,40 @@ func handleGetBlocks(req []byte, address NetAddress, bc *core.Blockchain) {
 
 	fmt.Printf("getting blocks starting with height %d for address %s\n", payload.Height+1, address.String())
 
-	sendInv(address, bc, "blocks")
+	blk, err := core.ReadBlockFromFile(int(payload.Height))
+	if err != nil {
+		fmt.Printf("error reading block height %d from file: %v\n", payload.Height, err)
+		return
+	}
+
+	if bytes.Compare(blk.Hash, payload.Hash) != 0 {
+	//	TODO: handle this MUCH better
+		fmt.Printf("ERROR: block height \"%d\" on address %s has a different hash than this node!\n", payload.Height, address.String())
+		return
+	}
+
+	myHeight, err := bc.GetChainHeight()
+	if err != nil {
+		fmt.Printf("error getting chain height for handleGetBlocks: %v\n", err)
+		return
+	}
+
+	inv := &Inventory{
+		Kind:   "blocks",
+	}
+
+	for i:=payload.Height; i < myHeight; i++ {
+		blk, err := core.ReadBlockFromFile(int(i))
+		if err != nil {
+			fmt.Printf("error reading in block height \"%d\" for handleGetBlocks: %v\n", i, err)
+			return
+		}
+
+		inv.Height = append(inv.Height, i)
+		inv.Items = append(inv.Items, blk.Hash)
+	}
+
+	sendInv(address, inv)
 }
 
 func handleInventory(req []byte, bc *core.Blockchain) {
@@ -93,17 +126,8 @@ func handleInventory(req []byte, bc *core.Blockchain) {
 		return
 	}
 
-	if payload.Item == "blocks" {
-		valid, err := bc.CompareBlocks(payload.Height, payload.Hashes[0])
-		if err != nil {
-			fmt.Printf("error comparing blocks for handleInv: %v\n", err)
-			return
-		}
-
-		if !valid {
-			// TODO: properly handle this issue. Maybe have an error command and handle it
-			fmt.Printf("ERROR: block #%d on address %s does not match this nodes block\n", payload.Height, payload.AddrFrom)
-			return
-		}
+	if payload.Kind == "blocks" {
+		blocksNeeded := payload.Height
+		fmt.Printf("So i need %v\n", blocksNeeded)
 	}
 }

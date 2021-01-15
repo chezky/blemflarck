@@ -20,10 +20,9 @@ type Version struct {
 }
 
 type Inventory struct {
-	AddrFrom NetAddress
-	Height int32
-	Hashes [][]byte
-	Item string // "blocks" for blocks, "txs" for transactions
+	Height []int32 // Height is the height of the block that the item is at
+	Items [][]byte // Items are a list of hashes. Transaction or block hashes
+	Kind string // Kind tells the node whether this is for transactions or for blocks
 }
 
 type GetBlocks struct {
@@ -45,10 +44,22 @@ func createNewAddress(addr NetAddress) *Address {
 	}
 }
 
+// String converts a full netAddress to string
 func (addr NetAddress) String() string {
 	return fmt.Sprintf("%s:%d", addr.IP.String(), addr.Port)
 }
 
+// SetPort sets the port of an address. Default is nodePort. If the address is known tho, make the port the actual port of the address. Usually all ports are the same.
+func (addr *NetAddress) SetPort() {
+	if !nodeIsKnow(addr.IP) {
+		addr.Port = nodePort
+		return
+	}
+
+	addr.Port = knownNodes[addr.IP.String()].Address.Port
+}
+
+// createVersion creates a new Version struct with an address, port, and height
 func createVersion(addr net.IP, port int, height int32) Version {
 	return Version{
 		Version:     nodeVersion,
