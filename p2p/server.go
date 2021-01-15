@@ -11,7 +11,7 @@ import (
 
 const (
 	cmdLength = 12
-	nodePort int16 = 42069
+	nodePort int16 = 8069
 )
 
 var (
