@@ -8,7 +8,7 @@ import (
 
 type NetAddress struct {
 	IP net.IP
-	Port int16
+	Port int
 }
 
 type Version struct {
@@ -49,7 +49,7 @@ func (addr NetAddress) String() string {
 	return fmt.Sprintf("%s:%d", addr.IP.String(), addr.Port)
 }
 
-func createVersion(addr net.IP, port int16, height int32) Version {
+func createVersion(addr net.IP, port int, height int32) Version {
 	return Version{
 		Version:     nodeVersion,
 		Timestamp:   time.Now().Unix(),

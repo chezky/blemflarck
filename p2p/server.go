@@ -11,7 +11,7 @@ import (
 
 const (
 	cmdLength = 12
-	nodePort int16 = 8069
+	nodePort int = 8069
 )
 
 var (
@@ -73,7 +73,7 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	fullAddr := conn.RemoteAddr().(*net.TCPAddr)
 	addr := NetAddress{
 		IP:   fullAddr.IP,
-		Port: int16(fullAddr.Port),
+		Port: fullAddr.Port,
 	}
 
 	cmd := bytesToCommand(req[:cmdLength])
