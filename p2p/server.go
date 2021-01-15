@@ -46,10 +46,10 @@ func StartServer() error {
 	defer bc.DB.Close()
 
 	// hardcoded now for testing locally
-	if getIPString() != "10.0.0.1:8080" {
+	if getIPString() != fmt.Sprintf("%s:%d", "10.0.0.1", nodePort){
 		addr := NetAddress{
 			IP:   net.IPv4(10,0,0,1),
-			Port: 8080,
+			Port: nodePort,
 		}
 		sendVersion(addr, bc)
 	}
@@ -70,7 +70,7 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 		fmt.Printf("error handling connection: %v\n", err)
 	}
 
-	fullAddr := conn.LocalAddr().(*net.TCPAddr)
+	fullAddr := conn.RemoteAddr().(*net.TCPAddr)
 	addr := NetAddress{
 		IP:   fullAddr.IP,
 		Port: int16(fullAddr.Port),
