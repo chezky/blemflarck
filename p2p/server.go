@@ -20,8 +20,8 @@ var (
 )
 
 func StartServer() error {
-	addr := getIPString()
-	ln, err := net.Listen("tcp", addr)
+	addr := getIPV6String()
+	ln, err := net.Listen("tcp6", "[::]:8069")
 	if err != nil {
 		fmt.Printf("error starting server: %v\n", err)
 		return err
@@ -30,6 +30,7 @@ func StartServer() error {
 	fmt.Printf("starting server on address: %s\n", addr)
 	fmt.Println("-------------")
 	fmt.Println()
+	fmt.Println(ln.Addr().String())
 
 	defer ln.Close()
 
@@ -45,14 +46,14 @@ func StartServer() error {
 
 	defer bc.DB.Close()
 
-	// hardcoded now for testing locally
-	if getIPString() != fmt.Sprintf("%s:%d", "10.0.0.1", nodePort){
-		addr := NetAddress{
-			IP:   net.IPv4(10,0,0,1),
-			Port: nodePort,
-		}
-		sendVersion(addr, bc)
-	}
+	//hardcoded now for testing locally
+	//if getIPString() != fmt.Sprintf("%s:%d", "2a02:ed0:4266:1b00:cb82:3621:3140:5354", nodePort){
+	//	addr := NetAddress{
+	//		IP:   net.IPv6zero,
+	//		Port: nodePort,
+	//	}
+	//	sendVersion(addr, bc)
+	//}
 
 	for {
 		conn, err := ln.Accept(); if err != nil {
@@ -60,6 +61,7 @@ func StartServer() error {
 			// TOOD: perhaps remove this exit call
 			return err
 		}
+
 		go HandleConnection(conn, bc)
 	}
 }
@@ -97,8 +99,8 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	}
 }
 
-func SendCmd(address string, payload []byte) error {
-	conn, err := net.Dial("tcp", address)
+func SendCmd(address NetAddress, payload []byte) error {
+	conn, err := net.Dial("tcp6", address.IP.String())
 	if err != nil {
 		fmt.Printf("error dialing address: %s: %v\n", address, err)
 		return err

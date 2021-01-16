@@ -13,6 +13,10 @@ func getIPString() string {
 	return fmt.Sprintf("%s:%d", localAddr.IP.String(), nodePort)
 }
 
+func getIPV6String() string {
+	return fmt.Sprintf("%s:%d", "[::]", nodePort)
+}
+
 func nodeIP() net.IP {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
 	defer conn.Close()

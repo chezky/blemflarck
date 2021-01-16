@@ -40,7 +40,7 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 
 	// If successfully received the Version message, confirm with the sender that it has been received, to update the this receiving node as successful handshake on
 	// the sender node.
-	sendVerack(payload.AddrFrom.String())
+	sendVerack(payload.AddrFrom)
 
 	myBlockHeight, err := bc.GetChainHeight()
 	if err != nil {

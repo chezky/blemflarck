@@ -27,7 +27,7 @@ func sendVersion(address NetAddress, bc *core.Blockchain) {
 	cmd := commandToBytes("version")
 	payload := append(cmd, enc...)
 
-	if err := SendCmd(address.String(), payload); err != nil {
+	if err := SendCmd(address, payload); err != nil {
 		fmt.Printf("error sending version cmd: %v\n", err)
 		return
 	}
@@ -35,7 +35,7 @@ func sendVersion(address NetAddress, bc *core.Blockchain) {
 }
 
 // sendVerack is sent to acknowledge a Version handshake was received. Once verack is sent back, we can verify that a version is
-func sendVerack(address string) {
+func sendVerack(address NetAddress) {
 	cmd := commandToBytes("verack")
 	SendCmd(address, cmd)
 }
@@ -67,7 +67,7 @@ func sendGetBlocks(address NetAddress, bc *core.Blockchain) {
 	cmd := commandToBytes("getblocks")
 	payload := append(cmd, enc...)
 
-	err = SendCmd(address.String(), payload)
+	err = SendCmd(address, payload)
 	if err != nil {
 		fmt.Printf("error sending \"%s\" command: %v\n", "getblocks", err)
 		return
@@ -84,7 +84,7 @@ func sendInv(address NetAddress, inv *Inventory) {
 	cmd := commandToBytes("inv")
 	payload := append(cmd, enc...)
 
-	if err := SendCmd(address.String(), payload); err != nil {
+	if err := SendCmd(address, payload); err != nil {
 		fmt.Printf("error sending getInv command to %s: %v", address, err)
 		return
 	}
@@ -109,7 +109,7 @@ func sendGetData(kind string) {
 			}
 
 			payload := append(cmd, enc...)
-			SendCmd(address.String(), payload)
+			SendCmd(address, payload)
 		}
 	}
 }
@@ -124,5 +124,5 @@ func sendBlock(block core.Block, address NetAddress) {
 	cmd := commandToBytes("block")
 	payload := append(cmd, enc...)
 
-	SendCmd(address.String(), payload)
+	SendCmd(address, payload)
 }
