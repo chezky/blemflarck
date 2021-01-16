@@ -21,7 +21,7 @@ var (
 
 func StartServer() error {
 	addr := getIPV6String()
-	ln, err := net.Listen("tcp6", "[::]:8069")
+	ln, err := net.Listen("tcp6", addr)
 	if err != nil {
 		fmt.Printf("error starting server: %v\n", err)
 		return err
@@ -47,13 +47,13 @@ func StartServer() error {
 	defer bc.DB.Close()
 
 	//hardcoded now for testing locally
-	//if getIPString() != fmt.Sprintf("%s:%d", "2a02:ed0:4266:1b00:cb82:3621:3140:5354", nodePort){
-	//	addr := NetAddress{
-	//		IP:   net.IPv6zero,
-	//		Port: nodePort,
-	//	}
-	//	sendVersion(addr, bc)
-	//}
+	if getIPString() != fmt.Sprintf("%s:%d", "[2a02:ed0:4266:1b00:b987:dc9d:e27c:c71a]", nodePort){
+		addr := NetAddress{
+			IP:   net.ParseIP("2a02:ed0:4266:1b00:b987:dc9d:e27c:c71a"),
+			Port: nodePort,
+		}
+		sendVersion(addr, bc)
+	}
 
 	for {
 		conn, err := ln.Accept(); if err != nil {
@@ -79,7 +79,7 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	addr.SetPort()
 
 	cmd := bytesToCommand(req[:cmdLength])
-	fmt.Printf("recieved \"%s\" command!\n", cmd)
+	fmt.Printf("recieved \"%s\" command! from %s\n", cmd, fullAddr.IP.String())
 
 	switch cmd {
 	case "version":
@@ -100,7 +100,8 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 }
 
 func SendCmd(address NetAddress, payload []byte) error {
-	conn, err := net.Dial("tcp6", address.IP.String())
+	fmt.Printf("dialing %s\n", address.String())
+	conn, err := net.Dial("tcp6", address.String())
 	if err != nil {
 		fmt.Printf("error dialing address: %s: %v\n", address, err)
 		return err

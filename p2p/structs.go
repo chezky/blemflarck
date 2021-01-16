@@ -52,6 +52,9 @@ func createNewAddress(addr NetAddress) *Address {
 
 // String converts a full netAddress to string
 func (addr NetAddress) String() string {
+	if addr.IP.To16() != nil {
+		return fmt.Sprintf("[%s]:%d", addr.IP.String(), addr.Port)
+	}
 	return fmt.Sprintf("%s:%d", addr.IP.String(), addr.Port)
 }
 

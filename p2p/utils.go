@@ -14,11 +14,18 @@ func getIPString() string {
 }
 
 func getIPV6String() string {
-	return fmt.Sprintf("%s:%d", "[::]", nodePort)
+	conn, _ := net.Dial("udp6", "[2a00:1450:4001:817::200e]:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return fmt.Sprintf("[%s]:%d", localAddr.IP, nodePort)
 }
 
 func nodeIP() net.IP {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	conn, err := net.Dial("udp", "[2a00:1450:4001:817::200e]:80")
+	if err != nil {
+		fmt.Printf("error finding nodeIP: %v\n", err)
+		return net.IP{}
+	}
 	defer conn.Close()
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP
