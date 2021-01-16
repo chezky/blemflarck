@@ -65,7 +65,6 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 // handleVerack is responsible for setting a nodes status to successful handshake if a verack message is received.
 func handleVerack(address NetAddress) {
 	// make sure it is actually coming from the right place
-	fmt.Println("verack from:", address.String())
 	if knownNodes[address.IP.String()] != nil {
 		fmt.Printf("Successfully sent version message, and received verack!\n")
 		knownNodes[address.IP.String()].Handshake = true

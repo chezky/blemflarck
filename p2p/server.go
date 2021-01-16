@@ -30,7 +30,6 @@ func StartServer() error {
 	fmt.Printf("starting server on address: %s\n", addr)
 	fmt.Println("-------------")
 	fmt.Println()
-	fmt.Println(ln.Addr().String())
 
 	defer ln.Close()
 
@@ -47,9 +46,9 @@ func StartServer() error {
 	defer bc.DB.Close()
 
 	//hardcoded now for testing locally
-	if getIPString() != fmt.Sprintf("%s:%d", "[2a02:ed0:4266:1b00:b987:dc9d:e27c:c71a]", nodePort){
+	if getIPV6String() != fmt.Sprintf("%s:%d", "[2a02:ed0:4266:1b00:cb82:3621:3140]", nodePort){
 		addr := NetAddress{
-			IP:   net.ParseIP("2a02:ed0:4266:1b00:b987:dc9d:e27c:c71a"),
+			IP:   net.ParseIP("2a02:ed0:4266:1b00:cb82:3621:3140"),
 			Port: nodePort,
 		}
 		sendVersion(addr, bc)
@@ -100,7 +99,6 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 }
 
 func SendCmd(address NetAddress, payload []byte) error {
-	fmt.Printf("dialing %s\n", address.String())
 	conn, err := net.Dial("tcp6", address.String())
 	if err != nil {
 		fmt.Printf("error dialing address: %s: %v\n", address, err)
