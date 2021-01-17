@@ -46,9 +46,9 @@ func StartServer() error {
 	defer bc.DB.Close()
 
 	//hardcoded now for testing locally
-	if getIPV6String() != fmt.Sprintf("%s:%d", "[2a02:ed0:4266:1b00:cb82:3621:3140]", nodePort){
+	if getIPV6String() != fmt.Sprintf("%s:%d", "[2a02:ed0:4266:1b00:cb82:3621:3140:5354]", nodePort){
 		addr := NetAddress{
-			IP:   net.ParseIP("2a02:ed0:4266:1b00:cb82:3621:3140"),
+			IP:   net.ParseIP("2a02:ed0:4266:1b00:cb82:3621:3140:5354"),
 			Port: nodePort,
 		}
 		sendVersion(addr, bc)
