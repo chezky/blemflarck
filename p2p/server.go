@@ -42,7 +42,7 @@ func StartServer() error {
 	defer ln.Close()
 
 	if !core.ChainExists() {
-		fmt.Printf("Unable to find a chain. Either create one, or redownload the genesis block.")
+		fmt.Printf("Unable to find a chain. Either create one, or redownload the genesis block.\n")
 		return err
 	}
 
@@ -92,7 +92,6 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 
 	cmd := bytesToCommand(req[:cmdLength])
 	fmt.Printf("recieved \"%s\" command! from %s\n", cmd, fullAddr.IP.String())
-	fmt.Printf("received from port %d\n", fullAddr.Port)
 
 	switch cmd {
 	case "version":

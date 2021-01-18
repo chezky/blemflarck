@@ -92,10 +92,11 @@ func sendInv(address NetAddress, inv *Inventory) {
 
 func sendGetData(kind string) {
 	cmd := commandToBytes("getdata")
-	address := getRandomAddress()
 
 	if kind == "blocks" {
 		for height, hash := range blocksNeeded {
+			address := getRandomAddress()
+
 			data := GetData{
 				Height: height,
 				Hash:   hash,
@@ -109,7 +110,10 @@ func sendGetData(kind string) {
 			}
 
 			payload := append(cmd, enc...)
-			SendCmd(address, payload)
+			if err := SendCmd(address, payload); err != nil {
+				fmt.Printf("error sending \"%s\" cmd to %s for block height \"%d\": %v", cmd, address.String(), height, err)
+				return
+			}
 		}
 	}
 }
