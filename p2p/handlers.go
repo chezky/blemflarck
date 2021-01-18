@@ -16,10 +16,11 @@ import (
 //L:      Sets version to the minimum of the 2 versions
 
 var (
-	blocksNeeded []core.Block
+	blocksNeeded = make(map[int32][]byte)
+	blocksReceived = make(map[int32]*core.Block)
 )
 
-var mutex =  &sync.Mutex{}
+var mutex = &sync.Mutex{}
 
 func handleVersion(req []byte, bc *core.Blockchain) {
 	var (
@@ -143,8 +144,7 @@ func handleInventory(req []byte, address NetAddress, bc *core.Blockchain) {
 		// payload.Height stores the height of the blocks i need. A single height is an int of the block height.
 		for idx, height := range payload.Height {
 			// payload.Items[idx] is the block hash at that height
-			blk := core.Block{Hash: payload.Items[idx], Height: int(height)}
-			blocksNeeded = append(blocksNeeded, blk)
+			blocksNeeded[height] = payload.Items[idx]
 		}
 
 		sendGetData("blocks")
@@ -182,31 +182,37 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 	// TODO: wow i need tons of block verification work here
 	var block core.Block
 
-	mutex.Lock()
-
 	dec := gob.NewDecoder(bytes.NewReader(req))
 	if err := dec.Decode(&block); err != nil {
 		fmt.Printf("error decoding block for handleBlock, with request of length %d: %v", len(req), err)
 		return
 	}
 
+	mutex.Lock()
 	lastHeight, err := bc.GetChainHeight()
 	if err != nil {
 		fmt.Printf("error getting chainheight for handleBlock: %v\n", err)
 		return
 	}
-
-	if int32(block.Height) != lastHeight +1 {
-		fmt.Printf("ERROR: requested block \"%d\" but chain is only at height \"%d\"\n", block.Height, lastHeight)
-		return
-	}
-
-	if err := bc.UpdateWithNewBlock(block); err != nil {
-		fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
-		return
-	}
-
 	mutex.Unlock()
 
-	fmt.Printf("successfully added block #%d\n", block.Height)
+	blocksReceived[int32(block.Height)] = &block
+
+	if int32(block.Height) == lastHeight + 1 {
+		mutex.Lock()
+		addBlocks(lastHeight, bc)
+		mutex.Unlock()
+	}
+}
+
+func addBlocks(height int32, bc *core.Blockchain) {
+	for i:=height; i < int32(len(blocksReceived))+height; i ++ {
+		block := blocksReceived[i]
+		if err := bc.UpdateWithNewBlock(*block); err != nil {
+			fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
+			return
+		}
+		blocksReceived[i] = nil
+		fmt.Printf("successfully added block #%d\n", block.Height)
+	}
 }
