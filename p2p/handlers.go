@@ -140,7 +140,8 @@ func handleInventory(req []byte, address NetAddress, bc *core.Blockchain) {
 		// payload.Height stores the height of the blocks i need. A single height is an int of the block height.
 		for idx, height := range payload.Height {
 			// payload.Items[idx] is the block hash at that height
-			blocksNeeded[idx] = core.Block{Hash: payload.Items[idx], Height: int(height)}
+			blk := core.Block{Hash: payload.Items[idx], Height: int(height)}
+			blocksNeeded = append(blocksNeeded, blk)
 		}
 
 		sendGetData("blocks")
