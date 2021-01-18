@@ -47,8 +47,8 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 		return
 	}
 
-	if myBlockHeight > payload.BlockHeight {
-		fmt.Printf("my block height is higher haha!\n")
+	if myBlockHeight > payload.BlockHeight && nodeIsKnow(payload.AddrFrom.IP){
+		sendVersion(payload.AddrFrom, bc)
 	} else if myBlockHeight < payload.BlockHeight {
 		sendGetBlocks(payload.AddrFrom, bc)
 	} else {
