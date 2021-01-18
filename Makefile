@@ -8,3 +8,6 @@ endif
 
 build:
 	go build -o $(TARGET) main.go
+
+blem:
+	go build -o $(TARGET) main.go

@@ -97,9 +97,6 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	default:
 		fmt.Printf("ERROR: %s is an unknown command\n", cmd)
 	}
-
-	n, err := conn.Write(commandToBytes("dope"))
-	fmt.Println(n, err)
 }
 
 func SendCmd(address NetAddress, payload []byte) error {
@@ -113,13 +110,5 @@ func SendCmd(address NetAddress, payload []byte) error {
 
 	_, err = io.Copy(conn, bytes.NewReader(payload))
 
-	for {
-		req, err := ioutil.ReadAll(conn)
-		if err != nil {
-			fmt.Printf("error reading: %v\n", err)
-			return err
-		}
-		fmt.Println(bytesToCommand(req[:cmdLength]))
-	}
-	return nil
+	return err
 }
