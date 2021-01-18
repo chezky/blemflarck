@@ -3,7 +3,6 @@ package p2p
 import (
 	"fmt"
 	"net"
-	"time"
 )
 
 func getIPString() string {
@@ -61,13 +60,10 @@ func nodeIsKnow(n net.IP) bool {
 }
 
 func getRandomAddress() NetAddress {
-	var node *Address
-	for _, node = range knownNodes.Addresses {
+	for _, node := range knownNodes.Addresses {
 		// if it's a valid node, and node has responded within the last 30m
-		if node.Handshake && (node.Timestamp + 1800) > time.Now().Unix() {
-			return node.Address
-		}
+		return node.Address
 	}
 	fmt.Printf("ERROR: can't find a node that is accepted and has a heartbeat\n")
-	return node.Address
+	return NetAddress{}
 }

@@ -97,6 +97,8 @@ func sendGetData(kind string) {
 		for _, blk := range blocksNeeded {
 			address := getRandomAddress()
 
+			fmt.Printf("getting block: %d\n", blk.Height)
+
 			data := GetData{
 				Height: int32(blk.Height),
 				Hash:   blk.Hash,
