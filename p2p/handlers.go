@@ -35,7 +35,7 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 		fmt.Printf("New node found with address: %s\n", payload.AddrFrom)
 		// If it is a new node, respond with your own version message before you can confirm it is valid
 		sendVersion(payload.AddrFrom, bc)
-		knownNodes[payload.AddrFrom.IP.String()] = createNewAddress(payload.AddrFrom)
+		knownNodes.Addresses[payload.AddrFrom.IP.String()] = createNewAddress(payload.AddrFrom)
 	}
 
 	// If successfully received the Version message, confirm with the sender that it has been received, to update the this receiving node as successful handshake on
@@ -65,9 +65,12 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 // handleVerack is responsible for setting a nodes status to successful handshake if a verack message is received.
 func handleVerack(address NetAddress) {
 	// make sure it is actually coming from the right place
-	if knownNodes[address.IP.String()] != nil {
+	if knownNodes.Addresses[address.IP.String()] != nil {
 		fmt.Printf("Successfully sent version message, and received verack!\n")
-		knownNodes[address.IP.String()].Handshake = true
+		knownNodes.Addresses[address.IP.String()].Handshake = true
+		if err := knownNodes.SaveToFile(); err != nil {
+			fmt.Printf("error saving addresses to file: %\n", err)
+		}
 	}
 	fmt.Println("known nodes", knownNodes)
 }

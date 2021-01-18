@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"fmt"
 	"net"
 	"time"
 )
@@ -40,32 +39,6 @@ type Address struct {
 	Address NetAddress
 	Handshake bool
 	Timestamp int64
-}
-
-func createNewAddress(addr NetAddress) *Address {
-	return &Address{
-		Address: addr,
-		Handshake: false,
-		Timestamp: time.Now().Unix(),
-	}
-}
-
-// String converts a full netAddress to string
-func (addr NetAddress) String() string {
-	if addr.IP.To16() != nil {
-		return fmt.Sprintf("[%s]:%d", addr.IP.String(), addr.Port)
-	}
-	return fmt.Sprintf("%s:%d", addr.IP.String(), addr.Port)
-}
-
-// SetPort sets the port of an address. Default is nodePort. If the address is known tho, make the port the actual port of the address. Usually all ports are the same.
-func (addr *NetAddress) SetPort() {
-	if !nodeIsKnow(addr.IP) {
-		addr.Port = nodePort
-		return
-	}
-
-	addr.Port = knownNodes[addr.IP.String()].Address.Port
 }
 
 // createVersion creates a new Version struct with an address, port, and height

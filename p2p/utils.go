@@ -52,7 +52,7 @@ func bytesToCommand(data []byte) string {
 }
 
 func nodeIsKnow(n net.IP) bool {
-	for addr, _ := range knownNodes {
+	for addr, _ := range knownNodes.Addresses {
 		if addr == n.String() {
 			return true
 		}
@@ -62,7 +62,7 @@ func nodeIsKnow(n net.IP) bool {
 
 func getRandomAddress() NetAddress {
 	var node *Address
-	for _, node = range knownNodes {
+	for _, node = range knownNodes.Addresses {
 		// if it's a valid node, and node has responded within the last 30m
 		if node.Handshake && (node.Timestamp + 1800) > time.Now().Unix() {
 			return node.Address

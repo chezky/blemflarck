@@ -6,6 +6,7 @@ import (
 	"github.com/chezky/blemflarck/core"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 )
 
@@ -15,11 +16,18 @@ const (
 )
 
 var (
-	knownNodes = make(map[string]*Address)
+	knownNodes Addresses
 	nodeVersion int32 = 3
 )
 
 func StartServer() error {
+	var err error
+
+	knownNodes, err = ReadAddressesFromFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	addr := getIPV6String()
 	ln, err := net.Listen("tcp6", addr)
 	if err != nil {
@@ -46,12 +54,17 @@ func StartServer() error {
 	defer bc.DB.Close()
 
 	//hardcoded now for testing locally
-	if getIPV6String() != fmt.Sprintf("%s:%d", "[2a02:ed0:4266:1b00:cb82:3621:3140:5354]", nodePort){
-		addr := NetAddress{
-			IP:   net.ParseIP("2a02:ed0:4266:1b00:cb82:3621:3140:5354"),
-			Port: nodePort,
+	//addr := NetAddress{
+	//	IP:   net.ParseIP("2a02:ed0:4266:1b00:cb82:3621:3140:5354"),
+	//	Port: nodePort,
+	//}
+	//sendVersion(addr, bc)
+
+	if len(knownNodes.Addresses) != 0 {
+		for _, a := range knownNodes.Addresses {
+			sendVersion(a.Address, bc)
+			break
 		}
-		sendVersion(addr, bc)
 	}
 
 	for {

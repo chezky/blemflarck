@@ -7,8 +7,8 @@ import (
 
 
 func sendVersion(address NetAddress, bc *core.Blockchain) {
-	if knownNodes[address.IP.String()] == nil {
-		knownNodes[address.IP.String()] = createNewAddress(address)
+	if knownNodes.Addresses[address.IP.String()] == nil {
+		knownNodes.Addresses[address.IP.String()] = createNewAddress(address)
 	}
 
 	height, err := bc.GetChainHeight()
