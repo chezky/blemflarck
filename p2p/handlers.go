@@ -17,7 +17,7 @@ import (
 
 var (
 	blocksNeeded = make(map[int32][]byte)
-	blocksReceived = make(map[int32]*core.Block)
+	blocksReceived = make(map[int32]core.Block)
 )
 
 var mutex = &sync.Mutex{}
@@ -196,7 +196,7 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 	}
 	mutex.Unlock()
 
-	blocksReceived[int32(block.Height)] = &block
+	blocksReceived[int32(block.Height)] = block
 
 	if int32(block.Height) == lastHeight + 1 {
 		mutex.Lock()
@@ -208,11 +208,11 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 func addBlocks(height int32, bc *core.Blockchain) {
 	for i:=height; i < int32(len(blocksReceived))+height; i ++ {
 		block := blocksReceived[i]
-		if err := bc.UpdateWithNewBlock(*block); err != nil {
+		if err := bc.UpdateWithNewBlock(block); err != nil {
 			fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
 			return
 		}
-		blocksReceived[i] = nil
+		delete(blocksReceived, i)
 		fmt.Printf("successfully added block #%d\n", block.Height)
 	}
 }

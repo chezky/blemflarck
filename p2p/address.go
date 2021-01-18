@@ -55,6 +55,11 @@ func (addrs Addresses) SaveToFile() error {
 		return err
 	}
 
+	// TODO: like cmon what eeven is this
+	if err := ioutil.WriteFile("./"+addressesFile, []byte{}, 0666); err != nil {
+		return err
+	}
+
 	if err := ioutil.WriteFile("./"+addressesFile, buff.Bytes(), 0666); err != nil {
 		fmt.Printf("error writing adddresses to file: %v\n", err)
 		return err
