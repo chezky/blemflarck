@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/chezky/blemflarck/core"
+	"sync"
 )
 
 //L -> R: Send version message with the local peer's version
@@ -17,6 +18,8 @@ import (
 var (
 	blocksNeeded []core.Block
 )
+
+var mutex =  &sync.Mutex{}
 
 func handleVersion(req []byte, bc *core.Blockchain) {
 	var (
@@ -179,6 +182,8 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 	// TODO: wow i need tons of block verification work here
 	var block core.Block
 
+	mutex.Lock()
+
 	dec := gob.NewDecoder(bytes.NewReader(req))
 	if err := dec.Decode(&block); err != nil {
 		fmt.Printf("error decoding block for handleBlock, with request of length %d: %v", len(req), err)
@@ -200,6 +205,8 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 		fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
 		return
 	}
+
+	mutex.Unlock()
 
 	fmt.Printf("successfully added block #%d\n", block.Height)
 }
