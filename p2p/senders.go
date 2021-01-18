@@ -94,12 +94,12 @@ func sendGetData(kind string) {
 	cmd := commandToBytes("getdata")
 
 	if kind == "blocks" {
-		for height, hash := range blocksNeeded {
+		for _, blk := range blocksNeeded {
 			address := getRandomAddress()
 
 			data := GetData{
-				Height: height,
-				Hash:   hash,
+				Height: int32(blk.Height),
+				Hash:   blk.Hash,
 				Kind:	kind,
 			}
 
@@ -111,7 +111,7 @@ func sendGetData(kind string) {
 
 			payload := append(cmd, enc...)
 			if err := SendCmd(address, payload); err != nil {
-				fmt.Printf("error sending \"%s\" cmd to %s for block height \"%d\": %v", cmd, address.String(), height, err)
+				fmt.Printf("error sending \"%s\" cmd to %s for block height \"%d\": %v", cmd, address.String(), blk.Height, err)
 				return
 			}
 		}

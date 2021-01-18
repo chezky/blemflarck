@@ -15,7 +15,7 @@ import (
 //L:      Sets version to the minimum of the 2 versions
 
 var (
-	blocksNeeded = make(map[int32][]byte)
+	blocksNeeded []core.Block
 )
 
 func handleVersion(req []byte, bc *core.Blockchain) {
@@ -140,7 +140,7 @@ func handleInventory(req []byte, address NetAddress, bc *core.Blockchain) {
 		// payload.Height stores the height of the blocks i need. A single height is an int of the block height.
 		for idx, height := range payload.Height {
 			// payload.Items[idx] is the block hash at that height
-			blocksNeeded[height] = payload.Items[idx]
+			blocksNeeded[idx] = core.Block{Hash: payload.Items[idx], Height: int(height)}
 		}
 
 		sendGetData("blocks")
@@ -181,6 +181,17 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 	dec := gob.NewDecoder(bytes.NewReader(req))
 	if err := dec.Decode(&block); err != nil {
 		fmt.Printf("error decoding block for handleBlock, with request of length %d: %v", len(req), err)
+		return
+	}
+
+	lastHeight, err := bc.GetChainHeight()
+	if err != nil {
+		fmt.Printf("error getting chainheight for handleBlock: %v\n", err)
+		return
+	}
+
+	if int32(block.Height) != lastHeight +1 {
+		fmt.Printf("ERROR: requested block \"%d\" but chain is only at height \"%d\"\n", block.Height, lastHeight)
 		return
 	}
 
