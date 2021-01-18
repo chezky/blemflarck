@@ -16,7 +16,7 @@ const (
 
 var (
 	knownNodes = make(map[string]*Address)
-	nodeVersion int32 = 1
+	nodeVersion int32 = 3
 )
 
 func StartServer() error {
@@ -79,6 +79,7 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 
 	cmd := bytesToCommand(req[:cmdLength])
 	fmt.Printf("recieved \"%s\" command! from %s\n", cmd, fullAddr.IP.String())
+	fmt.Printf("received from port %d\n", fullAddr.Port)
 
 	switch cmd {
 	case "version":
@@ -96,6 +97,9 @@ func HandleConnection(conn net.Conn, bc *core.Blockchain) {
 	default:
 		fmt.Printf("ERROR: %s is an unknown command\n", cmd)
 	}
+
+	n, err := conn.Write(commandToBytes("dope"))
+	fmt.Println(n, err)
 }
 
 func SendCmd(address NetAddress, payload []byte) error {
@@ -108,5 +112,14 @@ func SendCmd(address NetAddress, payload []byte) error {
 	defer conn.Close()
 
 	_, err = io.Copy(conn, bytes.NewReader(payload))
-	return err
+
+	for {
+		req, err := ioutil.ReadAll(conn)
+		if err != nil {
+			fmt.Printf("error reading: %v\n", err)
+			return err
+		}
+		fmt.Println(bytesToCommand(req[:cmdLength]))
+	}
+	return nil
 }

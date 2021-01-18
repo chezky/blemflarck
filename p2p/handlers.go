@@ -56,7 +56,7 @@ func handleVersion(req []byte, bc *core.Blockchain) {
 	}
 
 	// Update version to lower of the two nodes
-	if payload.Version > nodeVersion {
+	if payload.Version < nodeVersion {
 		fmt.Printf("switching version \"%d\" to match node %s\n", payload.Version, payload.AddrFrom.String())
 		nodeVersion = payload.Version
 	}
