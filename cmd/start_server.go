@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/chezky/blemflarck/p2p"
+	"github.com/chezky/blemflarck/testp2p"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -16,7 +16,7 @@ var (
 
 func startServer() func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
-		err := p2p.StartServer()
+		err := testp2p.StartServer()
 		if err != nil {
 			log.Fatal(err,"\n")
 		}

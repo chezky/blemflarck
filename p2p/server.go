@@ -53,18 +53,19 @@ func StartServer() error {
 
 	defer bc.DB.Close()
 
-	//hardcoded now for testing locally
-	//addr := NetAddress{
-	//	IP:   net.ParseIP("2a02:ed0:4266:1b00:cb82:3621:3140:5354"),
-	//	Port: nodePort,
-	//}
-	//sendVersion(addr, bc)
 
 	if len(knownNodes.Addresses) != 0 {
 		for _, a := range knownNodes.Addresses {
 			sendVersion(a.Address, bc)
 			break
 		}
+	} else {
+		//hardcoded now for testing locally
+		addrs := NetAddress{
+			IP:   net.ParseIP("2a02:ed0:4266:1b00:f988:e046:2f7b:ad31"),
+			Port: nodePort,
+		}
+		sendVersion(addrs, bc)
 	}
 
 	for {

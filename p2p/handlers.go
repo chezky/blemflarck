@@ -188,6 +188,8 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 		return
 	}
 
+	blocksReceived[int32(block.Height)] = block
+
 	mutex.Lock()
 	lastHeight, err := bc.GetChainHeight()
 	if err != nil {
@@ -196,11 +198,11 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 	}
 	mutex.Unlock()
 
-	blocksReceived[int32(block.Height)] = block
-
-	if int32(block.Height) == lastHeight + 1 {
+	fmt.Printf("blk is %d height is %d\n", block.Height, lastHeight)
+	// If i already received the block with next height needed...
+	if blocksReceived[lastHeight+1].Height != 0 {
 		mutex.Lock()
-		addBlocks(lastHeight, bc)
+		addBlocks(lastHeight+1, bc)
 		mutex.Unlock()
 	}
 }
@@ -208,11 +210,14 @@ func handleBlock(req []byte, bc *core.Blockchain) {
 func addBlocks(height int32, bc *core.Blockchain) {
 	for i:=height; i < int32(len(blocksReceived))+height; i ++ {
 		block := blocksReceived[i]
-		if err := bc.UpdateWithNewBlock(block); err != nil {
-			fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
-			return
+		// if its actually a valid block, and not an empty block
+		if block.Height != 0 {
+			if err := bc.UpdateWithNewBlock(block); err != nil {
+				fmt.Printf("error updating blockchain with new block #%d: %v\n", block.Height, err)
+				return
+			}
+			delete(blocksReceived, i)
+			fmt.Printf("successfully added block #%d\n", block.Height)
 		}
-		delete(blocksReceived, i)
-		fmt.Printf("successfully added block #%d\n", block.Height)
 	}
 }
